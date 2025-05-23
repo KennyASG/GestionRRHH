@@ -1,0 +1,31 @@
+@model IEnumerable<GestionRRHH.Web.Models.Entities.Empleado>
+
+@{
+    ViewData["Title"] = "Empleados";
+}
+
+<h1>Lista de Empleados</h1>
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Nombre</th>
+        <th>DPI</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Salario</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var empleado in Model)
+    {
+        <tr>
+            <td>@empleado.NombreCompleto</td>
+            <td>@empleado.Dpi</td>
+            <td>@empleado.Telefono</td>
+            <td>@empleado.Email</td>
+            <td>@empleado.SalarioBase.ToString("C")</td>
+        </tr>
+    }
+    </tbody>
+</table>
