@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using GestionRRHH.Web.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestionRRHH.Web.Controllers;
-
+[Authorize]
 public class EmpleadosController : Controller
 {
     private readonly ApplicationDbContext _context;

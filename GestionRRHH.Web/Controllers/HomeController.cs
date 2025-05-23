@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using GestionRRHH.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GestionRRHH.Web.Controllers;
-
+[Authorize]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
