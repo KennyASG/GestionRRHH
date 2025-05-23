@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using GestionRRHH.Web.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -24,17 +25,13 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
 
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
-
 app.UseAuthorization();
-
 app.MapStaticAssets();
 
 app.MapControllerRoute(
@@ -42,5 +39,10 @@ app.MapControllerRoute(
         pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+// Manejar URLs no encontradas - redirigir al Home
+app.MapFallback(async context =>
+{
+    context.Response.Redirect("/Home/Index");
+});
 
 app.Run();
