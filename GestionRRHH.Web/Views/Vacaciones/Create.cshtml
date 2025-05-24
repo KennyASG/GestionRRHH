@@ -21,7 +21,7 @@
         @Html.AntiForgeryToken()
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Empleado -->
+            <!-- Selector de Empleado -->
             <div class="md:col-span-2">
                 <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
                 <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados"
@@ -29,6 +29,7 @@
                     <option value="">Seleccionar empleado...</option>
                 </select>
             </div>
+
 
             <!-- Información del Empleado (se llena automáticamente) -->
             <div class="md:col-span-2" id="infoEmpleado" style="display: none;">
@@ -137,114 +138,39 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         const empleadoSelect = document.getElementById('empleadoId');
-        const fechaInicioInput = document.getElementById('fechaInicio');
-        const fechaFinInput = document.getElementById('fechaFin');
-        const diasVacacionesInput = document.getElementById('diasVacaciones');
-        const diasCalculadosInput = document.getElementById('diasCalculados');
+        const diasDisponiblesLabel = document.getElementById('diasDisponibles');
+        const departamentoLabel = document.getElementById('departamentoEmpleado');
+        const antiguedadLabel = document.getElementById('antiguedadEmpleado');
         const infoEmpleado = document.getElementById('infoEmpleado');
-        const previewCalculo = document.getElementById('previewCalculo');
-        const btnSubmit = document.getElementById('btnSubmit');
 
-        let diasDisponiblesEmpleado = 0;
+        empleadoSelect.addEventListener('change', async function () {
+            const empleadoId = this.value;
 
-        // Cargar información del empleado
-        empleadoSelect.addEventListener('change', async function() {
-            if (this.value) {
-                try {
-                    const response = await fetch(`/Vacaciones/ConsultarDisponibles/${this.value}`);
-                    const data = await response.json();
+            console.log("Valor enviado al SP:", empleadoId);
 
-                    if (data.success) {
-                        diasDisponiblesEmpleado = data.dias;
-                        document.getElementById('diasDisponibles').textContent = data.dias;
-                        infoEmpleado.style.display = 'block';
-                        validarFormulario();
-                    } else {
-                        alert('Error al consultar días disponibles: ' + data.error);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Error al consultar información del empleado');
-                }
-            } else {
+            if (!empleadoId || empleadoId === "0") {
                 infoEmpleado.style.display = 'none';
-                previewCalculo.style.display = 'none';
+                return;
             }
-        });
 
-        // Calcular días automáticamente
-        function calcularDias() {
-            if (fechaInicioInput.value && fechaFinInput.value) {
-                const fechaInicio = new Date(fechaInicioInput.value);
-                const fechaFin = new Date(fechaFinInput.value);
+            try {
+                const response = await fetch(`/Vacaciones/ConsultarDisponibles/${empleadoId}`);
+                const data = await response.json();
 
-                if (fechaFin >= fechaInicio) {
-                    // Calcular días calendario
-                    const diffTime = fechaFin - fechaInicio;
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-                    // Calcular días hábiles aproximado (excluyendo domingos)
-                    let diasHabiles = 0;
-                    const fecha = new Date(fechaInicio);
-
-                    while (fecha <= fechaFin) {
-                        if (fecha.getDay() !== 0) { // No domingo
-                            diasHabiles++;
-                        }
-                        fecha.setDate(fecha.getDate() + 1);
-                    }
-
-                    diasCalculadosInput.value = `${diasHabiles} días hábiles (${diffDays} días calendario)`;
-                    diasVacacionesInput.value = diasHabiles;
-
-                    // Mostrar preview
-                    document.getElementById('periodoPreview').textContent =
-                        `${fechaInicioInput.value} a ${fechaFinInput.value}`;
-                    document.getElementById('diasPreview').textContent = diasHabiles;
-                    document.getElementById('diasRestantes').textContent =
-                        Math.max(0, diasDisponiblesEmpleado - diasHabiles);
-
-                    previewCalculo.style.display = 'block';
-                    validarFormulario();
-                }
-            }
-        }
-
-        // Validar formulario
-        function validarFormulario() {
-            const diasSolicitados = parseInt(diasVacacionesInput.value) || 0;
-            const empleadoSeleccionado = empleadoSelect.value;
-
-            if (empleadoSeleccionado && diasSolicitados > 0) {
-                if (diasSolicitados > diasDisponiblesEmpleado) {
-                    btnSubmit.disabled = true;
-                    btnSubmit.textContent = `⚠️ Excede días disponibles (${diasDisponiblesEmpleado})`;
-                    btnSubmit.className = 'bg-red-600 text-white px-6 py-2 rounded-lg font-medium cursor-not-allowed';
+                if (data.success) {
+                    diasDisponiblesLabel.textContent = data.dias;
+                    departamentoLabel.textContent = data.departamento ?? '-';
+                    antiguedadLabel.textContent = data.antiguedad + ' años' ?? '-';
+                    infoEmpleado.style.display = 'block';
                 } else {
-                    btnSubmit.disabled = false;
-                    btnSubmit.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Enviar Solicitud';
-                    btnSubmit.className = 'bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200';
+                    alert("Error: " + data.error);
+                    infoEmpleado.style.display = 'none';
                 }
-            }
-        }
-
-        // Event listeners
-        fechaInicioInput.addEventListener('change', function() {
-            // Establecer fecha mínima para fecha fin
-            fechaFinInput.min = this.value;
-            calcularDias();
-        });
-
-        fechaFinInput.addEventListener('change', calcularDias);
-        diasVacacionesInput.addEventListener('input', validarFormulario);
-
-        // Validación de fechas
-        fechaFinInput.addEventListener('change', function() {
-            if (fechaInicioInput.value && this.value && this.value < fechaInicioInput.value) {
-                alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
-                this.value = '';
+            } catch (error) {
+                console.error("Error al consultar días disponibles:", error);
+                alert("Error al conectar con el servidor");
             }
         });
     });
