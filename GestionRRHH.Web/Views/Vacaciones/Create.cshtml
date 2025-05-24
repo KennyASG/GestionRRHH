@@ -1,0 +1,251 @@
+@{
+    ViewData["Title"] = "Nueva Solicitud de Vacaciones";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Nueva Solicitud de Vacaciones</h3>
+        <p class="text-sm text-gray-500 mt-1">Registra una nueva solicitud de vacaciones para un empleado</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Empleado -->
+            <div class="md:col-span-2">
+                <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
+                <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados"
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+            </div>
+
+            <!-- Información del Empleado (se llena automáticamente) -->
+            <div class="md:col-span-2" id="infoEmpleado" style="display: none;">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-user mr-2"></i>Información del Empleado
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+                        <div>
+                            <span class="font-medium">Días Disponibles:</span>
+                            <span id="diasDisponibles" class="font-bold">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Departamento:</span>
+                            <span id="departamentoEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Antigüedad:</span>
+                            <span id="antiguedadEmpleado">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div>
+                <label for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio *</label>
+                <input type="date" name="fechaInicio" id="fechaInicio" required
+                       min="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">No se pueden solicitar fechas pasadas</p>
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div>
+                <label for="fechaFin" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin *</label>
+                <input type="date" name="fechaFin" id="fechaFin" required
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Días de Vacaciones -->
+            <div>
+                <label for="diasVacaciones" class="block text-sm font-medium text-gray-700 mb-2">Días de Vacaciones *</label>
+                <input type="number" name="diasVacaciones" id="diasVacaciones" required min="1" max="30"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Se calculará automáticamente al seleccionar fechas</p>
+            </div>
+
+            <!-- Días Calculados Automáticamente -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Días Calculados</label>
+                <input type="text" id="diasCalculados" readonly
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-600">
+                <p class="text-xs text-gray-500 mt-1">Días hábiles entre las fechas seleccionadas</p>
+            </div>
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Información sobre Vacaciones en Guatemala
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-800">
+                <div>
+                    <p><strong>Derecho Legal:</strong> 15 días hábiles por año trabajado (Art. 130 Código de Trabajo)</p>
+                    <p><strong>Cálculo del Pago:</strong> Salario ordinario + promedio de bonificaciones de últimos 6 meses</p>
+                </div>
+                <div>
+                    <p><strong>Período Mínimo:</strong> Se pueden tomar desde 7 días consecutivos</p>
+                    <p><strong>Acumulación:</strong> Máximo 2 años de acumulación</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview del Cálculo -->
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg" id="previewCalculo" style="display: none;">
+            <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                <i class="fas fa-calculator mr-2"></i>Vista Previa del Cálculo
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-yellow-800">
+                <div>
+                    <span class="font-medium">Período:</span>
+                    <span id="periodoPreview">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Días Solicitados:</span>
+                    <span id="diasPreview">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Días Restantes:</span>
+                    <span id="diasRestantes">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-paper-plane mr-2"></i>Enviar Solicitud
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const empleadoSelect = document.getElementById('empleadoId');
+        const fechaInicioInput = document.getElementById('fechaInicio');
+        const fechaFinInput = document.getElementById('fechaFin');
+        const diasVacacionesInput = document.getElementById('diasVacaciones');
+        const diasCalculadosInput = document.getElementById('diasCalculados');
+        const infoEmpleado = document.getElementById('infoEmpleado');
+        const previewCalculo = document.getElementById('previewCalculo');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        let diasDisponiblesEmpleado = 0;
+
+        // Cargar información del empleado
+        empleadoSelect.addEventListener('change', async function() {
+            if (this.value) {
+                try {
+                    const response = await fetch(`/Vacaciones/ConsultarDisponibles/${this.value}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        diasDisponiblesEmpleado = data.dias;
+                        document.getElementById('diasDisponibles').textContent = data.dias;
+                        infoEmpleado.style.display = 'block';
+                        validarFormulario();
+                    } else {
+                        alert('Error al consultar días disponibles: ' + data.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al consultar información del empleado');
+                }
+            } else {
+                infoEmpleado.style.display = 'none';
+                previewCalculo.style.display = 'none';
+            }
+        });
+
+        // Calcular días automáticamente
+        function calcularDias() {
+            if (fechaInicioInput.value && fechaFinInput.value) {
+                const fechaInicio = new Date(fechaInicioInput.value);
+                const fechaFin = new Date(fechaFinInput.value);
+
+                if (fechaFin >= fechaInicio) {
+                    // Calcular días calendario
+                    const diffTime = fechaFin - fechaInicio;
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+                    // Calcular días hábiles aproximado (excluyendo domingos)
+                    let diasHabiles = 0;
+                    const fecha = new Date(fechaInicio);
+
+                    while (fecha <= fechaFin) {
+                        if (fecha.getDay() !== 0) { // No domingo
+                            diasHabiles++;
+                        }
+                        fecha.setDate(fecha.getDate() + 1);
+                    }
+
+                    diasCalculadosInput.value = `${diasHabiles} días hábiles (${diffDays} días calendario)`;
+                    diasVacacionesInput.value = diasHabiles;
+
+                    // Mostrar preview
+                    document.getElementById('periodoPreview').textContent =
+                        `${fechaInicioInput.value} a ${fechaFinInput.value}`;
+                    document.getElementById('diasPreview').textContent = diasHabiles;
+                    document.getElementById('diasRestantes').textContent =
+                        Math.max(0, diasDisponiblesEmpleado - diasHabiles);
+
+                    previewCalculo.style.display = 'block';
+                    validarFormulario();
+                }
+            }
+        }
+
+        // Validar formulario
+        function validarFormulario() {
+            const diasSolicitados = parseInt(diasVacacionesInput.value) || 0;
+            const empleadoSeleccionado = empleadoSelect.value;
+
+            if (empleadoSeleccionado && diasSolicitados > 0) {
+                if (diasSolicitados > diasDisponiblesEmpleado) {
+                    btnSubmit.disabled = true;
+                    btnSubmit.textContent = `⚠️ Excede días disponibles (${diasDisponiblesEmpleado})`;
+                    btnSubmit.className = 'bg-red-600 text-white px-6 py-2 rounded-lg font-medium cursor-not-allowed';
+                } else {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Enviar Solicitud';
+                    btnSubmit.className = 'bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200';
+                }
+            }
+        }
+
+        // Event listeners
+        fechaInicioInput.addEventListener('change', function() {
+            // Establecer fecha mínima para fecha fin
+            fechaFinInput.min = this.value;
+            calcularDias();
+        });
+
+        fechaFinInput.addEventListener('change', calcularDias);
+        diasVacacionesInput.addEventListener('input', validarFormulario);
+
+        // Validación de fechas
+        fechaFinInput.addEventListener('change', function() {
+            if (fechaInicioInput.value && this.value && this.value < fechaInicioInput.value) {
+                alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+                this.value = '';
+            }
+        });
+    });
+</script>

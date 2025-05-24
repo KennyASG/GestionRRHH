@@ -19,6 +19,18 @@ namespace GestionRRHH.Web.Services
         Task<Asistencia?> ObtenerAsistenciaPorId(int id);
         Task<bool> EliminarAsistencia(int id);
         Task<object> ObtenerReporteAsistencias(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null);
+        // Métodos para Vacaciones y Permisos
+        Task<List<Vacacione>> ObtenerVacaciones(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null);
+        Task<Vacacione?> ObtenerVacacionesPorId(int id);
+        Task<bool> SolicitarVacaciones(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, int diasVacaciones);
+        Task<bool> AprobarVacaciones(int vacacionId);
+        Task<bool> RechazarVacaciones(int vacacionId, string motivo);
+        Task<List<Permiso>> ObtenerPermisos(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null);
+        Task<Permiso?> ObtenerPermisoPorId(int id);
+        Task<bool> SolicitarPermiso(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, string tipo, string motivo, int dias, decimal? descuento = null);
+        Task<bool> AprobarPermiso(int permisoId);
+        Task<bool> RechazarPermiso(int permisoId);
+        Task<int> CalcularDiasVacacionesDisponibles(int empleadoId);
     }
 
     public class NominaService : INominaService
@@ -267,8 +279,224 @@ namespace GestionRRHH.Web.Services
                 ResumenPorEmpleado = resumenPorEmpleado
             };
         }
-        
-        
+
+        // ============ MÉTODOS PARA VACACIONES ============
+        public async Task<List<Vacacione>> ObtenerVacaciones(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null)
+        {
+            var query = _context.Vacaciones
+                .Include(v => v.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(v => v.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .AsQueryable();
+
+            if (fechaInicio.HasValue)
+                query = query.Where(v => v.FechaInicio >= fechaInicio.Value);
+
+            if (fechaFin.HasValue)
+                query = query.Where(v => v.FechaFin <= fechaFin.Value);
+
+            if (empleadoId.HasValue)
+                query = query.Where(v => v.IdEmpleado == empleadoId.Value);
+
+            if (!string.IsNullOrEmpty(estado))
+                query = query.Where(v => v.Estado == estado);
+
+            return await query.OrderByDescending(v => v.FechaCreacion)
+                             .ThenBy(v => v.IdEmpleadoNavigation.NombreCompleto)
+                             .ToListAsync();
+        }
+
+        public async Task<Vacacione?> ObtenerVacacionesPorId(int id)
+        {
+            return await _context.Vacaciones
+                .Include(v => v.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(v => v.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .FirstOrDefaultAsync(v => v.Id == id);
+        }
+
+        public async Task<bool> SolicitarVacaciones(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, int diasVacaciones)
+        {
+            return await ProcesarVacaciones(empleadoId, fechaInicio, fechaFin, diasVacaciones);
+        }
+
+        public async Task<bool> AprobarVacaciones(int vacacionId)
+        {
+            try
+            {
+                var vacacion = await _context.Vacaciones.FindAsync(vacacionId);
+                if (vacacion != null)
+                {
+                    vacacion.Estado = "aprobada";
+                    vacacion.FechaModificacion = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al aprobar vacaciones: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> RechazarVacaciones(int vacacionId, string motivo)
+        {
+            try
+            {
+                var vacacion = await _context.Vacaciones.FindAsync(vacacionId);
+                if (vacacion != null)
+                {
+                    vacacion.Estado = "rechazada";
+                    vacacion.FechaModificacion = DateTime.Now;
+                    // Nota: Podrías agregar un campo de motivo en la entidad si es necesario
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al rechazar vacaciones: {ex.Message}");
+            }
+        }
+
+        public async Task<int> CalcularDiasVacacionesDisponibles(int empleadoId)
+        {
+            try
+            {
+                var empleado = await _context.Empleados.FindAsync(empleadoId);
+                if (empleado == null) return 0;
+
+                // Calcular antiguedad en años (15 días por año según legislación guatemalteca)
+                var antiguedad = DateTime.Now.Year - empleado.FechaContratacion.Year;
+                var diasTotales = antiguedad * 15;
+
+                // Restar días ya tomados en el año actual
+                var inicioAño = new DateOnly(DateTime.Now.Year, 1, 1);
+                var finAño = new DateOnly(DateTime.Now.Year, 12, 31);
+
+                var diasTomados = await _context.Vacaciones
+                    .Where(v => v.IdEmpleado == empleadoId && 
+                               v.FechaInicio >= inicioAño && 
+                               v.FechaFin <= finAño &&
+                               (v.Estado == "aprobada" || v.Estado == "pagada"))
+                    .SumAsync(v => v.DiasTomados);
+
+                return Math.Max(0, diasTotales - diasTomados);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al calcular días disponibles: {ex.Message}");
+            }
+        }
+
+        // ============ MÉTODOS PARA PERMISOS ============
+        public async Task<List<Permiso>> ObtenerPermisos(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null)
+        {
+            var query = _context.Permisos
+                .Include(p => p.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(p => p.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .AsQueryable();
+
+            if (fechaInicio.HasValue)
+                query = query.Where(p => p.FechaInicio >= fechaInicio.Value);
+
+            if (fechaFin.HasValue)
+                query = query.Where(p => p.FechaFin <= fechaFin.Value);
+
+            if (empleadoId.HasValue)
+                query = query.Where(p => p.IdEmpleado == empleadoId.Value);
+
+            if (!string.IsNullOrEmpty(estado))
+                query = query.Where(p => p.Estado == estado);
+
+            return await query.OrderByDescending(p => p.FechaCreacion)
+                             .ThenBy(p => p.IdEmpleadoNavigation.NombreCompleto)
+                             .ToListAsync();
+        }
+
+        public async Task<Permiso?> ObtenerPermisoPorId(int id)
+        {
+            return await _context.Permisos
+                .Include(p => p.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(p => p.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<bool> SolicitarPermiso(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, string tipo, string motivo, int dias, decimal? descuento = null)
+        {
+            try
+            {
+                var permiso = new Permiso
+                {
+                    IdEmpleado = empleadoId,
+                    FechaInicio = fechaInicio,
+                    FechaFin = fechaFin,
+                    Tipo = tipo,
+                    Motivo = motivo,
+                    Dias = dias,
+                    Descuento = descuento ?? 0,
+                    Estado = "solicitado",
+                    FechaCreacion = DateTime.Now,
+                    FechaModificacion = DateTime.Now
+                };
+
+                _context.Permisos.Add(permiso);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al solicitar permiso: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> AprobarPermiso(int permisoId)
+        {
+            try
+            {
+                var permiso = await _context.Permisos.FindAsync(permisoId);
+                if (permiso != null)
+                {
+                    permiso.Estado = "aprobado";
+                    permiso.FechaModificacion = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al aprobar permiso: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> RechazarPermiso(int permisoId)
+        {
+            try
+            {
+                var permiso = await _context.Permisos.FindAsync(permisoId);
+                if (permiso != null)
+                {
+                    permiso.Estado = "rechazado";
+                    permiso.FechaModificacion = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al rechazar permiso: {ex.Message}");
+            }
+        }
     }
 
     // Clases para los resultados de los SP

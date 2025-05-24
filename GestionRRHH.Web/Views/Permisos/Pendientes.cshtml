@@ -1,0 +1,291 @@
+@model IEnumerable<GestionRRHH.Web.Models.Entities.Permiso>
+
+@{
+    ViewData["Title"] = "Permisos Pendientes";
+    var totalPendientes = Model.Count();
+    var conGoce = Model.Count(p => p.Tipo == "con_goce");
+    var sinGoce = Model.Count(p => p.Tipo == "sin_goce");
+    var totalDias = Model.Sum(p => p.Dias);
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Permisos Pendientes de Aprobación</h1>
+            <p class="text-gray-600">Solicitudes que requieren revisión y decisión</p>
+        </div>
+        <div class="flex space-x-3">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-list mr-2"></i>Ver Todos
+            </a>
+            <a asp-action="Create" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-plus mr-2"></i>Nueva Solicitud
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas Cards -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-yellow-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-yellow-100 text-sm">Pendientes</p>
+                <p class="text-2xl font-bold">@totalPendientes</p>
+            </div>
+            <i class="fas fa-hourglass-half text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-green-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm">Con Goce</p>
+                <p class="text-2xl font-bold">@conGoce</p>
+            </div>
+            <i class="fas fa-hand-holding-usd text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-red-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-red-100 text-sm">Sin Goce</p>
+                <p class="text-2xl font-bold">@sinGoce</p>
+            </div>
+            <i class="fas fa-hand-paper text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-purple-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm">Total Días</p>
+                <p class="text-2xl font-bold">@totalDias</p>
+            </div>
+            <i class="fas fa-calendar-day text-2xl opacity-80"></i>
+        </div>
+    </div>
+</div>
+
+@if (totalPendientes == 0)
+{
+    <!-- Estado vacío -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="text-center py-12">
+            <i class="fas fa-check-circle text-green-400 text-6xl mb-4"></i>
+            <h3 class="text-xl font-medium text-gray-900 mb-2">¡Excelente! No hay permisos pendientes</h3>
+            <p class="text-gray-500 mb-6">Todas las solicitudes han sido procesadas.</p>
+            <div class="flex justify-center space-x-3">
+                <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-list mr-2"></i>Ver Historial
+                </a>
+                <a asp-action="Create" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-plus mr-2"></i>Nueva Solicitud
+                </a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Lista de Permisos Pendientes -->
+    <div class="space-y-4">
+        @foreach (var permiso in Model.OrderBy(p => p.FechaInicio))
+        {
+            var diasHastaInicio = (permiso.FechaInicio.ToDateTime(TimeOnly.MinValue) - DateTime.Now.Date).Days;
+            var esUrgente = diasHastaInicio <= 3 && diasHastaInicio >= 0;
+            var yaInicio = diasHastaInicio < 0;
+            
+            <div class="bg-white rounded-lg shadow border-l-4 @(esUrgente ? "border-red-500" : yaInicio ? "border-orange-500" : "border-blue-500")">
+                <div class="p-6">
+                    <div class="flex items-start justify-between">
+                        <!-- Información Principal -->
+                        <div class="flex items-start space-x-4 flex-1">
+                            <!-- Avatar del Empleado -->
+                            <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <span class="text-white font-semibold">
+                                    @(permiso.IdEmpleadoNavigation.NombreCompleto.Split(' ').FirstOrDefault()?.Substring(0, 1))@(permiso.IdEmpleadoNavigation.NombreCompleto.Split(' ').Skip(1).FirstOrDefault()?.Substring(0, 1))
+                                </span>
+                            </div>
+
+                            <!-- Detalles -->
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <h4 class="text-lg font-semibold text-gray-900">@permiso.IdEmpleadoNavigation.NombreCompleto</h4>
+                                    
+                                    @if (permiso.Tipo == "con_goce")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-hand-holding-usd mr-1"></i>Con Goce
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-hand-paper mr-1"></i>Sin Goce
+                                        </span>
+                                    }
+
+                                    @if (esUrgente)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Urgente
+                                        </span>
+                                    }
+                                    
+                                    @if (yaInicio)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                            <i class="fas fa-clock mr-1"></i>Ya Iniciado
+                                        </span>
+                                    }
+                                </div>
+
+                                <p class="text-sm text-gray-600 mb-2">@permiso.IdEmpleadoNavigation.Departamento?.Nombre - @permiso.IdEmpleadoNavigation.Puesto?.Nombre</p>
+
+                                <!-- Información del Permiso -->
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500">Período</span>
+                                        <p class="text-sm text-gray-900">@permiso.FechaInicio.ToString("dd/MM") - @permiso.FechaFin.ToString("dd/MM/yyyy")</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500">Días</span>
+                                        <p class="text-sm font-semibold text-gray-900">@permiso.Dias día(s)</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500">Descuento</span>
+                                        <p class="text-sm text-gray-900">
+                                            @if (permiso.Tipo == "sin_goce" && (permiso.Descuento ?? 0) > 0)
+                                            {
+                                                <span class="text-red-600 font-medium">@((permiso.Descuento ?? 0).ToString("C"))</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-green-600">Sin descuento</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-medium text-gray-500">Solicitud</span>
+                                        <p class="text-sm text-gray-900">@permiso.FechaCreacion?.ToString("dd/MM/yyyy")</p>
+                                    </div>
+                                </div>
+
+                                <!-- Motivo -->
+                                <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                                    <span class="text-xs font-medium text-gray-500">Motivo:</span>
+                                    <p class="text-sm text-gray-900 mt-1">@permiso.Motivo</p>
+                                </div>
+
+                                <!-- Indicador de tiempo -->
+                                @if (diasHastaInicio >= 0)
+                                {
+                                    <p class="text-xs text-gray-500">
+                                        <i class="fas fa-calendar mr-1"></i>
+                                        @if (diasHastaInicio == 0)
+                                        {
+                                            <span class="text-orange-600 font-medium">Inicia hoy</span>
+                                        }
+                                        else if (diasHastaInicio == 1)
+                                        {
+                                            <span class="text-red-600 font-medium">Inicia mañana</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Inicia en @diasHastaInicio días</span>
+                                        }
+                                    </p>
+                                }
+                                else
+                                {
+                                    <p class="text-xs text-orange-600 font-medium">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                                        Ya debería haber iniciado (hace @Math.Abs(diasHastaInicio) día(s))
+                                    </p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="flex flex-col space-y-2 ml-4">
+                            <a asp-action="Details" asp-route-id="@permiso.Id" 
+                               class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200 text-center">
+                                <i class="fas fa-eye mr-1"></i>Ver Detalles
+                            </a>
+                            
+                            <form asp-action="Aprobar" asp-route-id="@permiso.Id" method="post" class="inline" onsubmit="return confirm('¿Aprobar esta solicitud de permiso?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                                    <i class="fas fa-check mr-1"></i>Aprobar
+                                </button>
+                            </form>
+                            
+                            <form asp-action="Rechazar" asp-route-id="@permiso.Id" method="post" class="inline" onsubmit="return confirm('¿Rechazar esta solicitud de permiso?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                                    <i class="fas fa-times mr-1"></i>Rechazar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Acciones masivas -->
+    @if (totalPendientes > 1)
+    {
+        <div class="mt-6 bg-gray-50 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Acciones Rápidas</h4>
+            <div class="flex space-x-3">
+                <button onclick="aprobarTodos()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                    <i class="fas fa-check-double mr-2"></i>Aprobar Todos los Con Goce
+                </button>
+                <button onclick="marcarUrgentes()" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Revisar Urgentes Primero
+                </button>
+            </div>
+        </div>
+    }
+}
+
+<script>
+function aprobarTodos() {
+    if (confirm('¿Aprobar automáticamente todos los permisos con goce de sueldo? Esta acción no se puede deshacer.')) {
+        // Aquí implementarías la lógica para aprobar múltiples permisos
+        alert('Funcionalidad pendiente de implementar');
+    }
+}
+
+function marcarUrgentes() {
+    // Scroll a los permisos urgentes
+    const urgentes = document.querySelectorAll('.border-red-500');
+    if (urgentes.length > 0) {
+        urgentes[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        urgentes[0].classList.add('ring-2', 'ring-red-500', 'ring-opacity-50');
+        setTimeout(() => {
+            urgentes[0].classList.remove('ring-2', 'ring-red-500', 'ring-opacity-50');
+        }, 3000);
+    } else {
+        alert('No hay permisos urgentes en este momento');
+    }
+}
+</script>
