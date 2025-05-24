@@ -14,6 +14,11 @@ namespace GestionRRHH.Web.Services
         Task<bool> RegistrarAsistencia(int empleadoId, DateOnly fecha, TimeOnly horaEntrada, TimeOnly? horaSalida, string? observaciones);
         Task<bool> ProcesarVacaciones(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, int diasVacaciones);
         Task<bool> ProcesarSuspensionIGSS(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, string tipoSuspension, string? observaciones);
+        Task<List<Asistencia>> ObtenerAsistencias(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null);
+        Task<List<Empleado>> ObtenerEmpleadosActivos();
+        Task<Asistencia?> ObtenerAsistenciaPorId(int id);
+        Task<bool> EliminarAsistencia(int id);
+        Task<object> ObtenerReporteAsistencias(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null);
     }
 
     public class NominaService : INominaService
@@ -162,6 +167,108 @@ namespace GestionRRHH.Web.Services
                 throw new Exception($"Error al procesar suspensión IGSS: {ex.Message}");
             }
         }
+
+        // Métodos adicionales para Asistencias
+        public async Task<List<Asistencia>> ObtenerAsistencias(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null)
+        {
+            var query = _context.Asistencias
+                .Include(a => a.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(a => a.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .AsQueryable();
+
+            if (fechaInicio.HasValue)
+                query = query.Where(a => a.Fecha >= fechaInicio.Value);
+
+            if (fechaFin.HasValue)
+                query = query.Where(a => a.Fecha <= fechaFin.Value);
+
+            if (empleadoId.HasValue)
+                query = query.Where(a => a.IdEmpleado == empleadoId.Value);
+
+            return await query.OrderByDescending(a => a.Fecha)
+                .ThenBy(a => a.IdEmpleadoNavigation.NombreCompleto)
+                .ToListAsync();
+        }
+
+        public async Task<List<Empleado>> ObtenerEmpleadosActivos()
+        {
+            return await _context.Empleados
+                .Where(e => e.Estado == "activo")
+                .Include(e => e.Departamento)
+                .Include(e => e.Puesto)
+                .OrderBy(e => e.NombreCompleto)
+                .ToListAsync();
+        }
+
+        public async Task<Asistencia?> ObtenerAsistenciaPorId(int id)
+        {
+            return await _context.Asistencias
+                .Include(a => a.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(a => a.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+        public async Task<bool> EliminarAsistencia(int id)
+        {
+            try
+            {
+                var asistencia = await _context.Asistencias.FindAsync(id);
+                if (asistencia != null)
+                {
+                    _context.Asistencias.Remove(asistencia);
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al eliminar asistencia: {ex.Message}");
+            }
+        }
+
+        public async Task<object> ObtenerReporteAsistencias(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null)
+        {
+            var asistencias = await ObtenerAsistencias(fechaInicio, fechaFin, empleadoId);
+    
+            // Cálculos para el reporte
+            var totalRegistros = asistencias.Count;
+            var horasExtraTotal = asistencias.Sum(a => a.HorasExtra ?? 0);
+            var horasTrabajadasTotal = asistencias.Sum(a => a.HorasTrabajadas ?? 0);
+            var empleadosUnicos = asistencias.Select(a => a.IdEmpleado).Distinct().Count();
+    
+            // Resumen por empleado
+            var resumenPorEmpleado = asistencias.GroupBy(a => new { 
+                a.IdEmpleado, 
+                a.IdEmpleadoNavigation.NombreCompleto,
+                Departamento = a.IdEmpleadoNavigation.Departamento?.Nombre,
+                Puesto = a.IdEmpleadoNavigation.Puesto?.Nombre
+            }).Select(g => new {
+                EmpleadoId = g.Key.IdEmpleado,
+                NombreCompleto = g.Key.NombreCompleto,
+                Departamento = g.Key.Departamento,
+                Puesto = g.Key.Puesto,
+                TotalDias = g.Count(),
+                TotalHorasTrabajadas = g.Sum(a => a.HorasTrabajadas ?? 0),
+                TotalHorasExtra = g.Sum(a => a.HorasExtra ?? 0),
+                PromedioHorasDiarias = g.Count() > 0 ? g.Sum(a => a.HorasTrabajadas ?? 0) / g.Count() : 0
+            }).OrderBy(x => x.NombreCompleto).ToList();
+
+            return new {
+                Asistencias = asistencias,
+                TotalRegistros = totalRegistros,
+                HorasExtraTotal = horasExtraTotal,
+                HorasTrabajadasTotal = horasTrabajadasTotal,
+                EmpleadosUnicos = empleadosUnicos,
+                ResumenPorEmpleado = resumenPorEmpleado
+            };
+        }
+        
+        
     }
 
     // Clases para los resultados de los SP
@@ -196,4 +303,6 @@ namespace GestionRRHH.Web.Services
         public int DiasQuePageIGSS { get; set; }
         public decimal MontoSubsidio { get; set; }
     }
+    
+    
 }
