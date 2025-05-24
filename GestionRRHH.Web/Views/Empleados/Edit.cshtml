@@ -132,11 +132,11 @@
                     <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
                         <div>
                             <span class="font-medium">Fecha de Creación:</span>
-                            @Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                            @(Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible")
                         </div>
                         <div>
                             <span class="font-medium">Última Modificación:</span>
-                            @Model.FechaModificacion.ToString("dd/MM/yyyy HH:mm")
+                            @(Model.FechaModificacion?.ToString("dd/MM/yyyy HH:mm") ?? "No disponible")
                         </div>
                     </div>
                 </div>
@@ -156,5 +156,59 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Validar rango salarial cuando cambie el puesto
+            $('#PuestoId').change(function() {
+                var puestoId = $(this).val();
+                if (puestoId) {
+                    // Aquí podrías hacer una llamada AJAX para obtener el rango salarial
+                    // Por ahora, mostrar un mensaje informativo
+                    var salarioInput = $('#SalarioBase');
+                    salarioInput.attr('title', 'Verificar que el salario esté dentro del rango del puesto seleccionado');
+                }
+            });
+
+            // Validar formato de DPI
+            $('#Dpi').on('input', function() {
+                var dpi = $(this).val().replace(/\D/g, ''); // Solo números
+                if (dpi.length > 13) {
+                    dpi = dpi.substring(0, 13);
+                }
+                $(this).val(dpi);
+            });
+
+            // Validar formato de teléfono
+            $('#Telefono').on('input', function() {
+                var telefono = $(this).val().replace(/\D/g, ''); // Solo números
+                if (telefono.length > 8) {
+                    telefono = telefono.substring(0, 8);
+                }
+                $(this).val(telefono);
+            });
+
+            // Validar que la fecha de nacimiento sea válida
+            $('#FechaNacimiento').change(function() {
+                var fechaNacimiento = new Date($(this).val());
+                var hoy = new Date();
+                var edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+
+                if (edad < 18 || edad > 100) {
+                    alert('La edad debe estar entre 18 y 100 años');
+                    $(this).focus();
+                }
+            });
+
+            // Validar que la fecha de contratación no sea futura
+            $('#FechaContratacion').change(function() {
+                var fechaContratacion = new Date($(this).val());
+                var hoy = new Date();
+
+                if (fechaContratacion > hoy) {
+                    alert('La fecha de contratación no puede ser futura');
+                    $(this).focus();
+                }
+            });
+        });
+    </script>
 }

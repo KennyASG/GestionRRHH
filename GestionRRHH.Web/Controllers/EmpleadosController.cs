@@ -111,6 +111,15 @@ public class EmpleadosController : Controller
             return NotFound();
         
         if (ModelState.IsValid)
+            System.Diagnostics.Debug.WriteLine("ModelState inválido:");
+        foreach (var key in ModelState.Keys)
+        {
+            var state = ModelState[key];
+            foreach (var error in state.Errors)
+            {
+                System.Diagnostics.Debug.WriteLine($"Campo: {key}, Error: {error.ErrorMessage}");
+            }
+        }
         {
             empleado.FechaModificacion = DateTime.Now;
             _context.Update(empleado);
