@@ -1,0 +1,60 @@
+@model GestionRRHH.Web.Models.Entities.Empleado
+
+@{
+    ViewData["Title"] = "Nuevo Empleado";
+}
+
+<h2>Nuevo Empleado</h2>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="NombreCompleto"></label>
+        <input asp-for="NombreCompleto" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Dpi"></label>
+        <input asp-for="Dpi" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="FechaNacimiento"></label>
+        <input asp-for="FechaNacimiento" class="form-control" type="date" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Direccion"></label>
+        <input asp-for="Direccion" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Telefono"></label>
+        <input asp-for="Telefono" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" class="form-control" type="email" />
+    </div>
+    <div class="form-group">
+        <label asp-for="FechaContratacion"></label>
+        <input asp-for="FechaContratacion" class="form-control" type="date" />
+    </div>
+    <div class="form-group">
+        <label asp-for="DepartamentoId"></label>
+        <select asp-for="DepartamentoId" class="form-control" asp-items="ViewBag.Departamentos"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="PuestoId"></label>
+        <select asp-for="PuestoId" class="form-control" asp-items="ViewBag.Puestos"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="SalarioBase"></label>
+        <input asp-for="SalarioBase" class="form-control" type="number" step="0.01" />
+    </div>
+    <div class="form-group">
+        <label asp-for="TipoNomina"></label>
+        <select asp-for="TipoNomina" class="form-control">
+            <option value="mensual">Mensual</option>
+            <option value="quincenal">Quincenal</option>
+            <option value="semanal">Semanal</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Guardar</button>
+    <a asp-action="Index" class="btn btn-secondary mt-3">Cancelar</a>
+</form>

@@ -70,6 +70,16 @@ public class EmpleadosController : Controller
     public async Task<IActionResult> Create(Empleado empleado)
     {
         if (ModelState.IsValid)
+            System.Diagnostics.Debug.WriteLine("ModelState inválido:");
+        foreach (var key in ModelState.Keys)
+        {
+            var state = ModelState[key];
+            foreach (var error in state.Errors)
+            {
+                System.Diagnostics.Debug.WriteLine($"Campo: {key}, Error: {error.ErrorMessage}");
+            }
+        }
+
         {
             empleado.FechaCreacion = DateTime.Now;
             empleado.FechaModificacion = DateTime.Now;
