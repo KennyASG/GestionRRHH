@@ -1,0 +1,75 @@
+@model GestionRRHH.Web.Models.Entities.Puesto
+
+@{
+    ViewData["Title"] = "Nuevo Puesto";
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Crear Nuevo Puesto</h3>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Nombre -->
+            <div class="md:col-span-2">
+                <label asp-for="Nombre" class="block text-sm font-medium text-gray-700 mb-2">Nombre del Puesto</label>
+                <input asp-for="Nombre" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="Nombre" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Descripción -->
+            <div class="md:col-span-2">
+                <label asp-for="Descripcion" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <textarea asp-for="Descripcion" rows="3" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                <span asp-validation-for="Descripcion" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Nivel Jerárquico -->
+            <div>
+                <label asp-for="NivelJerarquico" class="block text-sm font-medium text-gray-700 mb-2">Nivel Jerárquico</label>
+                <select asp-for="NivelJerarquico" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar nivel...</option>
+                    <option value="Gerencial">Gerencial</option>
+                    <option value="Supervisión">Supervisión</option>
+                    <option value="Técnico">Técnico</option>
+                    <option value="Operativo">Operativo</option>
+                </select>
+                <span asp-validation-for="NivelJerarquico" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Vacío para layout -->
+            <div></div>
+
+            <!-- Salario Mínimo -->
+            <div>
+                <label asp-for="SalarioMinimo" class="block text-sm font-medium text-gray-700 mb-2">Salario Mínimo</label>
+                <input asp-for="SalarioMinimo" type="number" step="0.01" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="SalarioMinimo" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Salario Máximo -->
+            <div>
+                <label asp-for="SalarioMaximo" class="block text-sm font-medium text-gray-700 mb-2">Salario Máximo</label>
+                <input asp-for="SalarioMaximo" type="number" step="0.01" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="SalarioMaximo" class="text-red-500 text-sm"></span>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-200">
+                <i class="fas fa-save mr-2"></i>Guardar
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
