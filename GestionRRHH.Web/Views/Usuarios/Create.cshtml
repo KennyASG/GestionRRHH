@@ -1,0 +1,44 @@
+@model GestionRRHH.Web.Models.Entities.Usuario
+
+@{
+    ViewData["Title"] = "Crear Usuario";
+}
+
+<h2>Crear Nuevo Usuario</h2>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="NombreUsuario"></label>
+        <input asp-for="NombreUsuario" class="form-control" />
+        <span asp-validation-for="NombreUsuario" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Contraseña">Contraseña</label>
+        <input asp-for="Contraseña" type="password" class="form-control" />
+        <span asp-validation-for="Contraseña" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Empleado Asociado</label>
+        <select asp-for="IdEmpleado" asp-items="ViewBag.Empleados" class="form-control">
+            <option value="">-- Selecciona un empleado --</option>
+        </select>
+        <span asp-validation-for="IdEmpleado" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label>Rol</label>
+        <select asp-for="Rol" asp-items="ViewBag.Roles" class="form-control">
+            <option value="">-- Selecciona un rol --</option>
+        </select>
+        <span asp-validation-for="Rol" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Crear Usuario</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

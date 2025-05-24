@@ -1,0 +1,38 @@
+@model List<GestionRRHH.Web.Models.Entities.Usuario>
+
+@{
+    ViewData["Title"] = "Usuarios";
+}
+
+<h2>Listado de Usuarios</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">Crear nuevo usuario</a>
+
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>Nombre de Usuario</th>
+        <th>Rol</th>
+        <th>Estado</th>
+        <th>Empleado Asociado</th>
+        <th>Fecha Creación</th>
+        <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    @foreach (var usuario in Model)
+    {
+        <tr>
+            <td>@usuario.NombreUsuario</td>
+            <td>@usuario.Rol</td>
+            <td>@usuario.Estado</td>
+            <td>@usuario.IdEmpleadoNavigation?.NombreCompleto</td>
+            <td>@usuario.FechaCreacion?.ToShortDateString()</td>
+            <td>
+                <!-- Podrías agregar editar/eliminar aquí -->
+                <a class="btn btn-sm btn-secondary disabled">Editar</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
