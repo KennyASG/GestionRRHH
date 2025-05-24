@@ -1,0 +1,212 @@
+@model GestionRRHH.Web.Models.Entities.Nomina
+
+@{
+    ViewData["Title"] = $"Nómina {Model.Tipo} - {Model.FechaInicio:dd/MM/yyyy}";
+    var totalNomina = Model.DetalleNominas.Sum(d => d.SalarioNeto ?? 0);
+    var totalIGSS = Model.DetalleNominas.Sum(d => d.Igss ?? 0);
+    var totalISR = Model.DetalleNominas.Sum(d => d.Isr ?? 0);
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<!-- Header con información de la nómina -->
+<div class="mb-6">
+    <div class="flex justify-between items-start mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Nómina @Model.Tipo.ToUpper()</h1>
+            <p class="text-gray-600">Período: @Model.FechaInicio.ToString("dd/MM/yyyy") - @Model.FechaFin.ToString("dd/MM/yyyy")</p>
+            <p class="text-sm text-gray-500">Creada por: @Model.UsuarioCreacion el @Model.FechaCreacion?.ToString("dd/MM/yyyy")</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            @if (Model.Estado == "en_proceso")
+            {
+                <form asp-action="Procesar" asp-route-id="@Model.Id" method="post" class="inline" onsubmit="return confirm('¿Procesar esta nómina? Esta acción calculará todos los valores y no se podrá deshacer.')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                        <i class="fas fa-play mr-2"></i>Procesar Nómina
+                    </button>
+                </form>
+            }
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <!-- Estado de la nómina -->
+    <div class="mb-4">
+        @if (Model.Estado == "finalizada")
+        {
+            <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-green-100 text-green-800">
+                <i class="fas fa-check-circle mr-2"></i>Nómina Finalizada
+            </span>
+        }
+        else if (Model.Estado == "en_proceso")
+        {
+            <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-yellow-100 text-yellow-800">
+                <i class="fas fa-hourglass-half mr-2"></i>En Proceso - Pendiente de Cálculo
+            </span>
+        }
+        else
+        {
+            <span class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-money-check-alt mr-2"></i>Pagada
+            </span>
+        }
+    </div>
+</div>
+
+<!-- Métricas Resumen -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-blue-100 text-sm">Total Empleados</p>
+                <p class="text-2xl font-bold">@Model.DetalleNominas.Count</p>
+            </div>
+            <i class="fas fa-users text-2xl opacity-80"></i>
+        </div>
+    </div>
+
+    <div class="bg-green-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm">Total Nómina</p>
+                <p class="text-2xl font-bold">@totalNomina.ToString("C")</p>
+            </div>
+            <i class="fas fa-money-bill-wave text-2xl opacity-80"></i>
+        </div>
+    </div>
+
+    <div class="bg-red-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-red-100 text-sm">Total IGSS</p>
+                <p class="text-2xl font-bold">@totalIGSS.ToString("C")</p>
+            </div>
+            <i class="fas fa-medical-symbol text-2xl opacity-80"></i>
+        </div>
+    </div>
+
+    <div class="bg-purple-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm">Total ISR</p>
+                <p class="text-2xl font-bold">@totalISR.ToString("C")</p>
+            </div>
+            <i class="fas fa-percentage text-2xl opacity-80"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Detalles -->
+<div class="bg-white rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Detalle por Empleado</h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Base</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bonif. Incent.</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Extra</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Ingresos</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IGSS</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ISR</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Desc.</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Neto</th>
+            </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+            @foreach (var detalle in Model.DetalleNominas.OrderBy(d => d.IdEmpleadoNavigation.NombreCompleto))
+            {
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">
+                                        @(detalle.IdEmpleadoNavigation.NombreCompleto.Split(' ').FirstOrDefault()?.Substring(0, 1))@(detalle.IdEmpleadoNavigation.NombreCompleto.Split(' ').Skip(1).FirstOrDefault()?.Substring(0, 1))
+                                    </span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">@detalle.IdEmpleadoNavigation.NombreCompleto</div>
+                                <div class="text-sm text-gray-500">@detalle.IdEmpleadoNavigation.Puesto?.Nombre</div>
+                                <div class="text-xs text-gray-400">@detalle.IdEmpleadoNavigation.Departamento?.Nombre</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        @detalle.SalarioBase.ToString("C")
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        @((detalle.BonificacionIncentivo ?? 0).ToString("C"))
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">@((detalle.MontoHorasExtra ?? 0).ToString("C"))</div>
+                        <div class="text-xs text-gray-500">@(detalle.HorasExtra ?? 0) hrs</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        @((detalle.TotalIngresos ?? 0).ToString("C"))
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                        -@((detalle.Igss ?? 0).ToString("C"))
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                        -@((detalle.Isr ?? 0).ToString("C"))
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                        -@((detalle.TotalDescuentos ?? 0).ToString("C"))
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-bold text-green-600">
+                            @((detalle.SalarioNeto ?? 0).ToString("C"))
+                        </div>
+                    </td>
+                </tr>
+            }
+            </tbody>
+            <tfoot class="bg-gray-50">
+            <tr class="font-semibold">
+                <td class="px-6 py-4 text-sm text-gray-900" colspan="4">TOTALES</td>
+                <td class="px-6 py-4 text-sm text-gray-900">@Model.DetalleNominas.Sum(d => d.TotalIngresos ?? 0).ToString("C")</td>
+                <td class="px-6 py-4 text-sm text-red-600">-@totalIGSS.ToString("C")</td>
+                <td class="px-6 py-4 text-sm text-red-600">-@totalISR.ToString("C")</td>
+                <td class="px-6 py-4 text-sm text-red-600">-@Model.DetalleNominas.Sum(d => d.TotalDescuentos ?? 0).ToString("C")</td>
+                <td class="px-6 py-4 text-sm font-bold text-green-600">@totalNomina.ToString("C")</td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+@if (Model.Estado == "en_proceso")
+{
+    <!-- Nota informativa -->
+    <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div class="flex">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mt-1 mr-3"></i>
+            <div>
+                <h3 class="text-sm font-medium text-yellow-800">Nómina pendiente de procesamiento</h3>
+                <p class="text-sm text-yellow-700 mt-1">
+                    Esta nómina aún no ha sido procesada. Los valores mostrados son preliminares.
+                    Haz clic en "Procesar Nómina" para calcular todos los descuentos y valores finales según la legislación guatemalteca.
+                </p>
+            </div>
+        </div>
+    </div>
+}
