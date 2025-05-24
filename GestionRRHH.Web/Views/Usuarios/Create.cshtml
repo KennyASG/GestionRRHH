@@ -4,41 +4,278 @@
     ViewData["Title"] = "Crear Usuario";
 }
 
-<h2>Crear Nuevo Usuario</h2>
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
 
-<form asp-action="Create" method="post">
-    <div class="form-group">
-        <label asp-for="NombreUsuario"></label>
-        <input asp-for="NombreUsuario" class="form-control" />
-        <span asp-validation-for="NombreUsuario" class="text-danger"></span>
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Crear Nuevo Usuario</h3>
+        <p class="text-sm text-gray-500 mt-1">Registra un nuevo usuario del sistema con sus permisos correspondientes</p>
     </div>
 
-    <div class="form-group">
-        <label asp-for="Contraseña">Contraseña</label>
-        <input asp-for="Contraseña" type="password" class="form-control" />
-        <span asp-validation-for="Contraseña" class="text-danger"></span>
-    </div>
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
 
-    <div class="form-group">
-        <label>Empleado Asociado</label>
-        <select asp-for="IdEmpleado" asp-items="ViewBag.Empleados" class="form-control">
-            <option value="">-- Selecciona un empleado --</option>
-        </select>
-        <span asp-validation-for="IdEmpleado" class="text-danger"></span>
-    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Información de Acceso -->
+            <div class="md:col-span-2">
+                <h4 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Información de Acceso</h4>
+            </div>
 
-    <div class="form-group">
-        <label>Rol</label>
-        <select asp-for="Rol" asp-items="ViewBag.Roles" class="form-control">
-            <option value="">-- Selecciona un rol --</option>
-        </select>
-        <span asp-validation-for="Rol" class="text-danger"></span>
-    </div>
+            <!-- Nombre de Usuario -->
+            <div>
+                <label asp-for="NombreUsuario" class="block text-sm font-medium text-gray-700 mb-2">Nombre de Usuario *</label>
+                <input asp-for="NombreUsuario" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Ej: jperez, admin, usuario123">
+                <span asp-validation-for="NombreUsuario" class="text-red-500 text-sm"></span>
+                <p class="text-xs text-gray-500 mt-1">Solo letras, números y guiones bajos. Sin espacios.</p>
+            </div>
 
-    <button type="submit" class="btn btn-primary">Crear Usuario</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
-</form>
+            <!-- Contraseña -->
+            <div>
+                <label asp-for="Contraseña" class="block text-sm font-medium text-gray-700 mb-2">Contraseña *</label>
+                <div class="relative">
+                    <input asp-for="Contraseña" type="password" id="password" class="block w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Mínimo 6 caracteres">
+                    <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <i class="fas fa-eye text-gray-400" id="toggleIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Contraseña" class="text-red-500 text-sm"></span>
+                <p class="text-xs text-gray-500 mt-1">Mínimo 6 caracteres. Se recomienda incluir mayúsculas, números y símbolos.</p>
+            </div>
+
+            <!-- Información del Sistema -->
+            <div class="md:col-span-2 mt-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Información del Sistema</h4>
+            </div>
+
+            <!-- Empleado Asociado -->
+            <div>
+                <label asp-for="IdEmpleado" class="block text-sm font-medium text-gray-700 mb-2">Empleado Asociado *</label>
+                <select asp-for="IdEmpleado" asp-items="ViewBag.Empleados" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+                <span asp-validation-for="IdEmpleado" class="text-red-500 text-sm"></span>
+                <p class="text-xs text-gray-500 mt-1">El usuario debe estar asociado a un empleado registrado</p>
+            </div>
+
+            <!-- Rol del Usuario -->
+            <div>
+                <label asp-for="Rol" class="block text-sm font-medium text-gray-700 mb-2">Rol del Usuario *</label>
+                <select asp-for="Rol" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar rol...</option>
+                    <option value="admin">Administrador</option>
+                    <option value="rrhh">Recursos Humanos</option>
+                    <option value="supervisor">Supervisor</option>
+                </select>
+                <span asp-validation-for="Rol" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Estado del Usuario -->
+            <div>
+                <label asp-for="Estado" class="block text-sm font-medium text-gray-700 mb-2">Estado Inicial</label>
+                <select asp-for="Estado" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="activo" selected>Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                </select>
+                <span asp-validation-for="Estado" class="text-red-500 text-sm"></span>
+                <p class="text-xs text-gray-500 mt-1">Los usuarios inactivos no podrán iniciar sesión</p>
+            </div>
+        </div>
+
+        <!-- Información de Roles -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Descripción de Roles
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                <div class="p-3 bg-white rounded border">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-user-cog text-purple-600 mr-2"></i>
+                        <span class="font-medium text-purple-800">Administrador</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Acceso completo al sistema</li>
+                        <li>Gestión de usuarios</li>
+                        <li>Configuración del sistema</li>
+                        <li>Reportes avanzados</li>
+                    </ul>
+                </div>
+                
+                <div class="p-3 bg-white rounded border">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-user-tie text-yellow-600 mr-2"></i>
+                        <span class="font-medium text-yellow-800">Recursos Humanos</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Gestión de empleados</li>
+                        <li>Procesamiento de nóminas</li>
+                        <li>Manejo de vacaciones</li>
+                        <li>Control de asistencias</li>
+                    </ul>
+                </div>
+                
+                <div class="p-3 bg-white rounded border">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-user-shield text-indigo-600 mr-2"></i>
+                        <span class="font-medium text-indigo-800">Supervisor</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Vista de su departamento</li>
+                        <li>Aprobación de permisos</li>
+                        <li>Consulta de reportes</li>
+                        <li>Gestión de equipo</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista Previa del Usuario -->
+        <div id="userPreview" class="mt-6 p-4 bg-blue-50 rounded-lg" style="display: none;">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-eye mr-2"></i>Vista Previa del Usuario
+            </h4>
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span class="text-white font-semibold" id="userInitials">--</span>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-blue-900" id="previewUsername">Nombre de usuario</div>
+                    <div class="text-sm text-blue-700" id="previewRole">Rol del usuario</div>
+                    <div class="text-sm text-blue-600" id="previewEmployee">Empleado asociado</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Seguridad -->
+        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-shield-alt mr-2"></i>Recomendaciones de Seguridad
+            </h4>
+            <div class="text-sm text-green-800">
+                <ul class="list-disc list-inside space-y-1">
+                    <li>Usa nombres de usuario únicos y fáciles de recordar</li>
+                    <li>Las contraseñas deben ser seguras y no reutilizadas</li>
+                    <li>Asigna solo los permisos necesarios según el rol</li>
+                    <li>Revisa periódicamente los accesos de los usuarios</li>
+                    <li>Desactiva inmediatamente usuarios que ya no requieren acceso</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-user-plus mr-2"></i>Crear Usuario
+            </button>
+        </div>
+    </form>
+</div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Preview functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.getElementById('NombreUsuario');
+            const roleSelect = document.getElementById('Rol');
+            const employeeSelect = document.getElementById('IdEmpleado');
+            const previewDiv = document.getElementById('userPreview');
+            const userInitials = document.getElementById('userInitials');
+            const previewUsername = document.getElementById('previewUsername');
+            const previewRole = document.getElementById('previewRole');
+            const previewEmployee = document.getElementById('previewEmployee');
+
+            function updatePreview() {
+                const username = usernameInput.value;
+                const role = roleSelect.value;
+                const employeeText = employeeSelect.options[employeeSelect.selectedIndex]?.text;
+
+                if (username || role || employeeSelect.value) {
+                    previewDiv.style.display = 'block';
+                    
+                    // Update initials
+                    if (username) {
+                        userInitials.textContent = username.substring(0, 2).toUpperCase();
+                        previewUsername.textContent = username;
+                    } else {
+                        userInitials.textContent = '--';
+                        previewUsername.textContent = 'Nombre de usuario';
+                    }
+
+                    // Update role
+                    const roleNames = {
+                        'admin': 'Administrador',
+                        'rrhh': 'Recursos Humanos',
+                        'supervisor': 'Supervisor'
+                    };
+                    previewRole.textContent = roleNames[role] || 'Rol del usuario';
+
+                    // Update employee
+                    previewEmployee.textContent = employeeText && employeeText !== 'Seleccionar empleado...' ? 
+                        employeeText : 'Empleado asociado';
+                } else {
+                    previewDiv.style.display = 'none';
+                }
+            }
+
+            usernameInput.addEventListener('input', updatePreview);
+            roleSelect.addEventListener('change', updatePreview);
+            employeeSelect.addEventListener('change', updatePreview);
+
+            // Validation enhancements
+            usernameInput.addEventListener('input', function() {
+                // Remove invalid characters
+                let value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
+                if (value !== this.value) {
+                    this.value = value;
+                }
+                
+                // Check if username is already taken (you would implement this with AJAX)
+                if (value.length >= 3) {
+                    // Here you could add AJAX call to check username availability
+                }
+            });
+
+            // Password strength indicator
+            document.getElementById('Contraseña').addEventListener('input', function() {
+                const password = this.value;
+                let strength = 0;
+                
+                if (password.length >= 6) strength++;
+                if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+                if (password.match(/[0-9]/)) strength++;
+                if (password.match(/[^a-zA-Z0-9]/)) strength++;
+                
+                // You could add a visual strength indicator here
+            });
+        });
+    </script>
 }
