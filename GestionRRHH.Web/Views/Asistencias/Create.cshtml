@@ -1,0 +1,218 @@
+@{
+    ViewData["Title"] = "Registrar Asistencia";
+    var fechaHoy = ViewBag.FechaHoy as DateOnly?;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Registrar Nueva Asistencia</h3>
+        <p class="text-sm text-gray-500 mt-1">Registra la entrada y salida de un empleado</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Empleado -->
+            <div class="md:col-span-2">
+                <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
+                <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados"
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+            </div>
+
+            <!-- Fecha -->
+            <div>
+                <label for="fecha" class="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
+                <input type="date" name="fecha" id="fecha" required
+                       value="@fechaHoy?.ToString("yyyy-MM-dd")"
+                       max="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">No se pueden registrar fechas futuras</p>
+            </div>
+
+            <!-- Día de la semana (automático) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Día de la Semana</label>
+                <input type="text" id="diaSemana" readonly
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-gray-600">
+            </div>
+
+            <!-- Hora de Entrada -->
+            <div>
+                <label for="horaEntrada" class="block text-sm font-medium text-gray-700 mb-2">Hora de Entrada *</label>
+                <input type="time" name="horaEntrada" id="horaEntrada" required
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Hora de Salida -->
+            <div>
+                <label for="horaSalida" class="block text-sm font-medium text-gray-700 mb-2">Hora de Salida</label>
+                <input type="time" name="horaSalida" id="horaSalida"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Opcional - puedes registrar solo la entrada</p>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="md:col-span-2">
+                <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                <textarea name="observaciones" id="observaciones" rows="3"
+                          placeholder="Ej: Llegada tardía por tráfico, salida temprana por cita médica..."
+                          class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+        </div>
+
+        <!-- Información Automática -->
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg" id="infoCalculada" style="display: none;">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-calculator mr-2"></i>Cálculo Automático
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+                <div>
+                    <span class="font-medium">Horas Trabajadas:</span>
+                    <span id="horasTrabajadas">-</span> horas
+                </div>
+                <div>
+                    <span class="font-medium">Horas Extra:</span>
+                    <span id="horasExtra">-</span> horas
+                </div>
+                <div>
+                    <span class="font-medium">Jornada:</span>
+                    <span id="tipoJornada">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Horarios de Referencia -->
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Información de Referencia
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                <div>
+                    <p><strong>Jornada Normal:</strong> 8 horas diarias</p>
+                    <p><strong>Horas Extra Simples:</strong> 150% del valor hora (hasta 12 hrs diarias)</p>
+                </div>
+                <div>
+                    <p><strong>Horas Extra Dobles:</strong> 200% del valor hora (días de descanso)</p>
+                    <p><strong>Límite Legal:</strong> Máximo 12 horas diarias de trabajo</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-save mr-2"></i>Registrar Asistencia
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fechaInput = document.getElementById('fecha');
+        const diaSemanaInput = document.getElementById('diaSemana');
+        const horaEntradaInput = document.getElementById('horaEntrada');
+        const horaSalidaInput = document.getElementById('horaSalida');
+        const infoCalculada = document.getElementById('infoCalculada');
+        const horasTrabajadasSpan = document.getElementById('horasTrabajadas');
+        const horasExtraSpan = document.getElementById('horasExtra');
+        const tipoJornadaSpan = document.getElementById('tipoJornada');
+
+        // Días de la semana en español
+        const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+        // Actualizar día de la semana cuando cambia la fecha
+        function actualizarDiaSemana() {
+            if (fechaInput.value) {
+                const fecha = new Date(fechaInput.value + 'T00:00:00');
+                diaSemanaInput.value = diasSemana[fecha.getDay()];
+            }
+        }
+
+        // Calcular horas trabajadas y extras
+        function calcularHoras() {
+            if (horaEntradaInput.value && horaSalidaInput.value) {
+                const entrada = new Date(`2000-01-01T${horaEntradaInput.value}:00`);
+                const salida = new Date(`2000-01-01T${horaSalidaInput.value}:00`);
+
+                // Si la salida es menor que la entrada, asumimos que es del día siguiente
+                if (salida < entrada) {
+                    salida.setDate(salida.getDate() + 1);
+                }
+
+                const diferenciaMilisegundos = salida - entrada;
+                const horasTotales = diferenciaMilisegundos / (1000 * 60 * 60);
+
+                if (horasTotales > 0) {
+                    const horasNormales = Math.min(horasTotales, 8);
+                    const horasExtras = Math.max(0, horasTotales - 8);
+
+                    horasTrabajadasSpan.textContent = horasTotales.toFixed(1);
+                    horasExtraSpan.textContent = horasExtras.toFixed(1);
+
+                    // Determinar tipo de jornada
+                    if (horasTotales <= 8) {
+                        tipoJornadaSpan.textContent = 'Normal';
+                    } else if (horasTotales <= 12) {
+                        tipoJornadaSpan.textContent = 'Con horas extra';
+                    } else {
+                        tipoJornadaSpan.textContent = 'Excede límite legal (12 hrs)';
+                        tipoJornadaSpan.className = 'text-red-600 font-semibold';
+                    }
+
+                    infoCalculada.style.display = 'block';
+                } else {
+                    infoCalculada.style.display = 'none';
+                }
+            } else {
+                infoCalculada.style.display = 'none';
+            }
+        }
+
+        // Establecer hora actual como entrada por defecto
+        function establecerHoraActual() {
+            const ahora = new Date();
+            const horaActual = ahora.getHours().toString().padStart(2, '0') + ':' +
+                ahora.getMinutes().toString().padStart(2, '0');
+            horaEntradaInput.value = horaActual;
+        }
+
+        // Event listeners
+        fechaInput.addEventListener('change', actualizarDiaSemana);
+        horaEntradaInput.addEventListener('change', calcularHoras);
+        horaSalidaInput.addEventListener('change', calcularHoras);
+
+        // Validación de hora de salida
+        horaSalidaInput.addEventListener('change', function() {
+            if (horaEntradaInput.value && horaSalidaInput.value) {
+                const entrada = horaEntradaInput.value;
+                const salida = horaSalidaInput.value;
+
+                // Solo validar si ambas horas están en el mismo día
+                if (salida <= entrada) {
+                    alert('La hora de salida debe ser posterior a la hora de entrada (o puede dejarse vacía).');
+                    horaSalidaInput.value = '';
+                }
+            }
+        });
+
+        // Inicializar
+        actualizarDiaSemana();
+        establecerHoraActual();
+    });
+</script>

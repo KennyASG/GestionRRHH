@@ -1,0 +1,289 @@
+@model IEnumerable<GestionRRHH.Web.Models.Entities.Asistencia>
+
+@{
+    ViewData["Title"] = "Reporte de Asistencias";
+    var fechaInicio = ViewBag.FechaInicio as DateOnly?;
+    var fechaFin = ViewBag.FechaFin as DateOnly?;
+    var empleadoId = ViewBag.EmpleadoId as int?;
+    
+    // Obtener datos calculados del servicio
+    var reporteData = ViewBag.ReporteData as dynamic;
+    var totalRegistros = (int)reporteData.TotalRegistros;
+    var horasExtraTotal = (decimal)reporteData.HorasExtraTotal;
+    var horasTrabajadasTotal = (decimal)reporteData.HorasTrabajadasTotal;
+    var empleadosUnicos = (int)reporteData.EmpleadosUnicos;
+    var resumenPorEmpleado = reporteData.ResumenPorEmpleado as IEnumerable<dynamic>;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<!-- Header -->
+<div class="mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Reporte de Asistencias</h1>
+            <p class="text-gray-600">
+                Período: @fechaInicio?.ToString("dd/MM/yyyy") - @fechaFin?.ToString("dd/MM/yyyy")
+                @if (empleadoId.HasValue)
+                {
+                    var empleadoSeleccionado = Model.FirstOrDefault()?.IdEmpleadoNavigation?.NombreCompleto;
+                    <span class="text-blue-600">| Empleado: @empleadoSeleccionado</span>
+                }
+            </p>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-print mr-2"></i>Imprimir
+            </button>
+            <a asp-action="Index" asp-route-fechaInicio="@fechaInicio" asp-route-fechaFin="@fechaFin" asp-route-empleadoId="@empleadoId" 
+               class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>Volver a Lista
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros (Solo visible en pantalla, no en impresión) -->
+<div class="bg-white rounded-lg shadow mb-6 p-6 print:hidden">
+    <form method="get" asp-action="Reporte">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
+                <input type="date" name="fechaInicio" value="@fechaInicio?.ToString("yyyy-MM-dd")" 
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
+                <input type="date" name="fechaFin" value="@fechaFin?.ToString("yyyy-MM-dd")" 
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Empleado</label>
+                <select name="empleadoId" asp-items="ViewBag.Empleados" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos los empleados</option>
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-sync mr-2"></i>Actualizar Reporte
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Métricas de Resumen -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-blue-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-blue-100 text-sm">Total Registros</p>
+                <p class="text-2xl font-bold">@totalRegistros</p>
+            </div>
+            <i class="fas fa-clipboard-list text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-green-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-green-100 text-sm">Empleados</p>
+                <p class="text-2xl font-bold">@empleadosUnicos</p>
+            </div>
+            <i class="fas fa-users text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-yellow-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-yellow-100 text-sm">Horas Trabajadas</p>
+                <p class="text-2xl font-bold">@horasTrabajadasTotal.ToString("F0")</p>
+            </div>
+            <i class="fas fa-clock text-2xl opacity-80"></i>
+        </div>
+    </div>
+    
+    <div class="bg-purple-600 rounded-lg p-4 text-white">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-purple-100 text-sm">Horas Extra</p>
+                <p class="text-2xl font-bold">@horasExtraTotal.ToString("F0")</p>
+            </div>
+            <i class="fas fa-plus-circle text-2xl opacity-80"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen por Empleado -->
+<div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Resumen por Empleado</h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Días</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Trabajadas</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Horas Extra</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promedio Diario</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Eficiencia</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @foreach (var empleado in resumenPorEmpleado)
+                {
+                    var eficiencia = empleado.PromedioHorasDiarias >= 8 ? "Excelente" : 
+                                   empleado.PromedioHorasDiarias >= 7 ? "Buena" : "Mejorable";
+                    var colorEficiencia = empleado.PromedioHorasDiarias >= 8 ? "text-green-600" : 
+                                        empleado.PromedioHorasDiarias >= 7 ? "text-yellow-600" : "text-red-600";
+                    
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">
+                                        @(((string)empleado.NombreCompleto).Split(' ').FirstOrDefault()?.Substring(0, 1))@(((string)empleado.NombreCompleto).Split(' ').Skip(1).FirstOrDefault()?.Substring(0, 1))
+                                    </span>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">@empleado.NombreCompleto</div>
+                                    <div class="text-sm text-gray-500">@empleado.Departamento</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @empleado.TotalDias días
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            @((decimal)empleado.TotalHorasTrabajadas).ToString("F1") hrs
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if ((decimal)empleado.TotalHorasExtra > 0)
+                            {
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    @((decimal)empleado.TotalHorasExtra).ToString("F1") hrs
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-sm text-gray-500">0 hrs</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @((decimal)empleado.PromedioHorasDiarias).ToString("F1") hrs/día
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium @colorEficiencia">@eficiencia</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detalle Cronológico -->
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Detalle Cronológico</h3>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleado</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Entrada</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salida</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">H. Trabajadas</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">H. Extra</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observaciones</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @foreach (var asistencia in Model.OrderBy(a => a.Fecha).ThenBy(a => a.IdEmpleadoNavigation.NombreCompleto))
+                {
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @asistencia.Fecha.ToString("dd/MM/yyyy")
+                            <div class="text-xs text-gray-500">@asistencia.Fecha.ToString("dddd")</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">@asistencia.IdEmpleadoNavigation.NombreCompleto</div>
+                            <div class="text-xs text-gray-500">@asistencia.IdEmpleadoNavigation.Departamento?.Nombre</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <i class="fas fa-sign-in-alt text-green-600 mr-1"></i>@asistencia.HoraEntrada?.ToString("HH:mm")
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @if (asistencia.HoraSalida.HasValue)
+                            {
+                                <span><i class="fas fa-sign-out-alt text-red-600 mr-1"></i>@asistencia.HoraSalida?.ToString("HH:mm")</span>
+                            }
+                            else
+                            {
+                                <span class="text-yellow-600"><i class="fas fa-clock mr-1"></i>En progreso</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            @((asistencia.HorasTrabajadas ?? 0).ToString("F1")) hrs
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            @if ((asistencia.HorasExtra ?? 0) > 0)
+                            {
+                                <span class="text-yellow-600 font-medium">@((asistencia.HorasExtra ?? 0).ToString("F1")) hrs</span>
+                            }
+                            else
+                            {
+                                <span class="text-gray-400">-</span>
+                            }
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                            @(string.IsNullOrEmpty(asistencia.Observaciones) ? "-" : asistencia.Observaciones)
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-12">
+            <i class="fas fa-chart-line text-gray-400 text-4xl mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay datos para el reporte</h3>
+            <p class="text-gray-500">No se encontraron registros de asistencia para el período y filtros seleccionados.</p>
+        </div>
+    }
+</div>
+
+<!-- Información del reporte para impresión -->
+<div class="hidden print:block mt-6 text-center text-sm text-gray-500">
+    <p>Reporte generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm") por @User.Identity?.Name</p>
+    <p>Sistema de Gestión RRHH - Control de Asistencias</p>
+</div>
+
+<style>
+@@media print {
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+    body { font-size: 12px; }
+    .bg-blue-600, .bg-green-600, .bg-yellow-600, .bg-purple-600 { 
+        background-color: #f3f4f6 !important; 
+        color: #374151 !important; 
+    }
+}
+</style>
