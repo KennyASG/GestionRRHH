@@ -31,6 +31,12 @@ namespace GestionRRHH.Web.Services
         Task<bool> AprobarPermiso(int permisoId);
         Task<bool> RechazarPermiso(int permisoId);
         Task<int> CalcularDiasVacacionesDisponibles(int empleadoId);
+        // Métodos para Suspensiones IGSS
+        Task<List<SuspensionesIgss>> ObtenerSuspensionesIGSS(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null);
+        Task<SuspensionesIgss?> ObtenerSuspensionIGSSPorId(int id);
+        Task<bool> CrearSuspensionIGSS(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, string tipoSuspension, string? observaciones);
+        Task<bool> FinalizarSuspensionIGSS(int suspensionId);
+        Task<bool> ActualizarSuspensionIGSS(int suspensionId, int diasPagadosIGSS, decimal montoSubsidio, string? observaciones);
     }
 
     public class NominaService : INominaService
@@ -495,6 +501,90 @@ namespace GestionRRHH.Web.Services
             catch (Exception ex)
             {
                 throw new Exception($"Error al rechazar permiso: {ex.Message}");
+            }
+        }
+        
+        // ============ MÉTODOS PARA SUSPENSIONES IGSS ============
+        public async Task<List<SuspensionesIgss>> ObtenerSuspensionesIGSS(DateOnly? fechaInicio = null, DateOnly? fechaFin = null, int? empleadoId = null, string? estado = null)
+        {
+            var query = _context.SuspensionesIgsses
+                .Include(s => s.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(s => s.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .AsQueryable();
+
+            if (fechaInicio.HasValue)
+                query = query.Where(s => s.FechaInicio >= fechaInicio.Value);
+
+            if (fechaFin.HasValue)
+                query = query.Where(s => s.FechaFin <= fechaFin.Value);
+
+            if (empleadoId.HasValue)
+                query = query.Where(s => s.IdEmpleado == empleadoId.Value);
+
+            if (!string.IsNullOrEmpty(estado))
+                query = query.Where(s => s.Estado == estado);
+
+            return await query.OrderByDescending(s => s.FechaCreacion)
+                             .ThenBy(s => s.IdEmpleadoNavigation.NombreCompleto)
+                             .ToListAsync();
+        }
+
+        public async Task<SuspensionesIgss?> ObtenerSuspensionIGSSPorId(int id)
+        {
+            return await _context.SuspensionesIgsses
+                .Include(s => s.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Departamento)
+                .Include(s => s.IdEmpleadoNavigation)
+                .ThenInclude(e => e.Puesto)
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
+
+        public async Task<bool> CrearSuspensionIGSS(int empleadoId, DateOnly fechaInicio, DateOnly fechaFin, string tipoSuspension, string? observaciones)
+        {
+            return await ProcesarSuspensionIGSS(empleadoId, fechaInicio, fechaFin, tipoSuspension, observaciones);
+        }
+
+        public async Task<bool> FinalizarSuspensionIGSS(int suspensionId)
+        {
+            try
+            {
+                var suspension = await _context.SuspensionesIgsses.FindAsync(suspensionId);
+                if (suspension != null)
+                {
+                    suspension.Estado = "finalizada";
+                    suspension.FechaModificacion = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al finalizar suspensión IGSS: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> ActualizarSuspensionIGSS(int suspensionId, int diasPagadosIGSS, decimal montoSubsidio, string? observaciones)
+        {
+            try
+            {
+                var suspension = await _context.SuspensionesIgsses.FindAsync(suspensionId);
+                if (suspension != null)
+                {
+                    suspension.DiasPagadosIgss = diasPagadosIGSS;
+                    suspension.MontoSubsidio = montoSubsidio;
+                    suspension.Observaciones = observaciones;
+                    suspension.FechaModificacion = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al actualizar suspensión IGSS: {ex.Message}");
             }
         }
     }

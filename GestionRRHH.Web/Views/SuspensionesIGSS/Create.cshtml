@@ -1,0 +1,334 @@
+@{
+    ViewData["Title"] = "Registrar Suspensión IGSS";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Registrar Nueva Suspensión IGSS</h3>
+        <p class="text-sm text-gray-500 mt-1">Registra una incapacidad temporal por enfermedad común o accidente laboral</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Empleado -->
+            <div class="md:col-span-2">
+                <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
+                <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados" 
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+            </div>
+
+            <!-- Información del Empleado -->
+            <div class="md:col-span-2" id="infoEmpleado" style="display: none;">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-user mr-2"></i>Información del Empleado
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-blue-800">
+                        <div>
+                            <span class="font-medium">Departamento:</span>
+                            <span id="departamentoEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Puesto:</span>
+                            <span id="puestoEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Salario Base:</span>
+                            <span id="salarioEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Tipo Nómina:</span>
+                            <span id="tipoNominaEmpleado">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tipo de Suspensión -->
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Suspensión *</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="tipoSuspension" value="enfermedad_comun" id="enfermedadComun" required 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-1">
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">
+                                <i class="fas fa-thermometer-half text-yellow-600 mr-2"></i>Enfermedad Común
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1">
+                                • Subsidio: 66% del salario promedio<br>
+                                • Se paga desde el 4to día de incapacidad<br>
+                                • Incluye: gripe, gastritis, lesiones no laborales
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="tipoSuspension" value="accidente_laboral" id="accidenteLaboral" required 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 mt-1">
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">
+                                <i class="fas fa-hard-hat text-orange-600 mr-2"></i>Accidente Laboral
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1">
+                                • Subsidio: 100% del salario promedio<br>
+                                • Se paga desde el 1er día<br>
+                                • Incluye: accidentes en el trabajo o trayecto
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div>
+                <label for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio de Incapacidad *</label>
+                <input type="date" name="fechaInicio" id="fechaInicio" required 
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Fecha en que inició la incapacidad médica</p>
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div>
+                <label for="fechaFin" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin de Incapacidad *</label>
+                <input type="date" name="fechaFin" id="fechaFin" required 
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Fecha estimada de fin según certificado médico</p>
+            </div>
+
+            <!-- Observaciones -->
+            <div class="md:col-span-2">
+                <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
+                <textarea name="observaciones" id="observaciones" rows="3" 
+                          placeholder="Detalles adicionales: diagnóstico, médico tratante, centro de atención, número de certificado médico..."
+                          class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+        </div>
+
+        <!-- Preview del Cálculo -->
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg" id="previewCalculo" style="display: none;">
+            <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                <i class="fas fa-calculator mr-2"></i>Vista Previa del Cálculo IGSS
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-yellow-800">
+                <div>
+                    <span class="font-medium">Días Totales:</span>
+                    <span id="diasTotales">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Días que Paga IGSS:</span>
+                    <span id="diasPagaIGSS">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Porcentaje Subsidio:</span>
+                    <span id="porcentajeSubsidio">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Subsidio Estimado:</span>
+                    <span id="montoSubsidio">-</span>
+                </div>
+            </div>
+            <div class="mt-3 p-3 bg-white rounded border text-xs text-gray-600">
+                <strong>Nota:</strong> Los cálculos finales se realizarán automáticamente al registrar la suspensión, 
+                basándose en el salario promedio de los últimos 6 meses del empleado.
+            </div>
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Marco Legal - Suspensiones IGSS en Guatemala
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-800">
+                <div>
+                    <p><strong>Base Legal:</strong> Ley Orgánica del IGSS (Decreto 295) y Acuerdo 1121</p>
+                    <p><strong>Enfermedad Común:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>66% del salario promedio últimos 6 meses</li>
+                        <li>Se paga desde el 4to día de incapacidad</li>
+                        <li>Máximo 26 semanas por año</li>
+                        <li>Requiere certificado médico del IGSS</li>
+                    </ul>
+                </div>
+                <div>
+                    <p><strong>Accidente Laboral:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>100% del salario promedio últimos 6 meses</li>
+                        <li>Se paga desde el 1er día</li>
+                        <li>Sin límite de tiempo mientras dure incapacidad</li>
+                        <li>Incluye accidentes en trayecto al trabajo</li>
+                    </ul>
+                    <p class="mt-2"><strong>Importante:</strong> El patrono NO paga salario durante suspensión IGSS activa.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" id="btnSubmit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-user-injured mr-2"></i>Registrar Suspensión IGSS
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const empleadoSelect = document.getElementById('empleadoId');
+    const fechaInicioInput = document.getElementById('fechaInicio');
+    const fechaFinInput = document.getElementById('fechaFin');
+    const enfermedadComunRadio = document.getElementById('enfermedadComun');
+    const accidenteLaboralRadio = document.getElementById('accidenteLaboral');
+    const infoEmpleado = document.getElementById('infoEmpleado');
+    const previewCalculo = document.getElementById('previewCalculo');
+
+    let salarioEmpleado = 0;
+
+    // Cargar información del empleado (simulado)
+    empleadoSelect.addEventListener('change', function() {
+        if (this.value) {
+            // En un caso real, harías una petición AJAX para obtener datos del empleado
+            // Por ahora simulamos datos básicos
+            salarioEmpleado = 6000; // Ejemplo
+            document.getElementById('departamentoEmpleado').textContent = 'Producción';
+            document.getElementById('puestoEmpleado').textContent = 'Operario';
+            document.getElementById('salarioEmpleado').textContent = `Q${salarioEmpleado.toFixed(2)}`;
+            document.getElementById('tipoNominaEmpleado').textContent = 'Mensual';
+            infoEmpleado.style.display = 'block';
+            calcularPreview();
+        } else {
+            infoEmpleado.style.display = 'none';
+            previewCalculo.style.display = 'none';
+        }
+    });
+
+    // Calcular días automáticamente
+    function calcularDias() {
+        if (fechaInicioInput.value && fechaFinInput.value) {
+            const fechaInicio = new Date(fechaInicioInput.value);
+            const fechaFin = new Date(fechaFinInput.value);
+            
+            if (fechaFin >= fechaInicio) {
+                const diffTime = fechaFin - fechaInicio;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                return diffDays;
+            }
+        }
+        return 0;
+    }
+
+    // Calcular preview
+    function calcularPreview() {
+        if (fechaInicioInput.value && fechaFinInput.value && (enfermedadComunRadio.checked || accidenteLaboralRadio.checked) && salarioEmpleado > 0) {
+            const diasTotales = calcularDias();
+            let diasPagaIGSS = 0;
+            let porcentaje = 0;
+            
+            if (accidenteLaboralRadio.checked) {
+                diasPagaIGSS = diasTotales;
+                porcentaje = 100;
+            } else if (enfermedadComunRadio.checked) {
+                diasPagaIGSS = Math.max(0, diasTotales - 3); // Se descuentan los primeros 3 días
+                porcentaje = 66;
+            }
+            
+            const salarioDiario = salarioEmpleado / 30;
+            const subsidioEstimado = salarioDiario * (porcentaje / 100) * diasPagaIGSS;
+            
+            document.getElementById('diasTotales').textContent = diasTotales;
+            document.getElementById('diasPagaIGSS').textContent = diasPagaIGSS;
+            document.getElementById('porcentajeSubsidio').textContent = porcentaje + '%';
+            document.getElementById('montoSubsidio').textContent = `Q${subsidioEstimado.toFixed(2)}`;
+            
+            previewCalculo.style.display = 'block';
+        } else {
+            previewCalculo.style.display = 'none';
+        }
+    }
+
+    // Event listeners
+    fechaInicioInput.addEventListener('change', function() {
+        // Establecer fecha mínima para fecha fin
+        fechaFinInput.min = this.value;
+        
+        // Validar que no sea muy antigua (máximo 30 días atrás)
+        const fechaInicio = new Date(this.value);
+        const hace30Dias = new Date();
+        hace30Dias.setDate(hace30Dias.getDate() - 30);
+        
+        if (fechaInicio < hace30Dias) {
+            alert('La fecha de inicio no puede ser anterior a 30 días. Para casos antiguos, contacte al administrador.');
+            this.value = '';
+            return;
+        }
+        
+        calcularPreview();
+    });
+
+    fechaFinInput.addEventListener('change', function() {
+        if (fechaInicioInput.value && this.value < fechaInicioInput.value) {
+            alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+            this.value = '';
+            return;
+        }
+        
+        // Validar que no sea muy extensa (máximo 6 meses)
+        if (fechaInicioInput.value) {
+            const fechaInicio = new Date(fechaInicioInput.value);
+            const fechaFin = new Date(this.value);
+            const diffDays = (fechaFin - fechaInicio) / (1000 * 60 * 60 * 24);
+            
+            if (diffDays > 180) { // 6 meses aprox
+                if (!confirm('La incapacidad es mayor a 6 meses. ¿Está seguro de que es correcta?')) {
+                    this.value = '';
+                    return;
+                }
+            }
+        }
+        
+        calcularPreview();
+    });
+
+    enfermedadComunRadio.addEventListener('change', calcularPreview);
+    accidenteLaboralRadio.addEventListener('change', calcularPreview);
+
+    // Validación del formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!enfermedadComunRadio.checked && !accidenteLaboralRadio.checked) {
+            e.preventDefault();
+            alert('Debe seleccionar el tipo de suspensión');
+            return;
+        }
+
+        if (fechaInicioInput.value && fechaFinInput.value && fechaFinInput.value < fechaInicioInput.value) {
+            e.preventDefault();
+            alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+            return;
+        }
+
+        // Confirmación final
+        const diasTotales = calcularDias();
+        const tipo = accidenteLaboralRadio.checked ? 'Accidente Laboral' : 'Enfermedad Común';
+        
+        if (!confirm(`¿Confirmar registro de suspensión IGSS?\n\nTipo: ${tipo}\nDías: ${diasTotales}\n\nEsta acción calculará automáticamente el subsidio según la legislación guatemalteca.`)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>

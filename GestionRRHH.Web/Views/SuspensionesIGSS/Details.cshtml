@@ -1,0 +1,310 @@
+@model GestionRRHH.Web.Models.Entities.SuspensionesIgss
+
+@{
+    ViewData["Title"] = "Detalles de Suspensión IGSS";
+    var diasTotales = (Model.FechaFin.ToDateTime(TimeOnly.MinValue) - Model.FechaInicio.ToDateTime(TimeOnly.MinValue)).Days + 1;
+    var diasTranscurridos = Math.Max(0, (DateTime.Now.Date - Model.FechaInicio.ToDateTime(TimeOnly.MinValue)).Days);
+    var enCurso = DateTime.Now.Date >= Model.FechaInicio.ToDateTime(TimeOnly.MinValue) && 
+                  DateTime.Now.Date <= Model.FechaFin.ToDateTime(TimeOnly.MinValue) && 
+                  Model.Estado == "activa";
+    var porcentajeSubsidio = Model.Tipo == "accidente_laboral" ? 100 : 66;
+    var diasSinPago = Model.Tipo == "enfermedad_comun" ? 3 : 0;
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Detalles de Suspensión IGSS</h3>
+                <p class="text-sm text-gray-500 mt-1">Registro #@Model.Id.ToString().PadLeft(6, '0')</p>
+            </div>
+            <div class="flex space-x-3">
+                @if (Model.Estado == "activa")
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                        <i class="fas fa-edit mr-2"></i>Editar
+                    </a>
+                    <form asp-action="Finalizar" asp-route-id="@Model.Id" method="post" class="inline" onsubmit="return confirm('¿Finalizar esta suspensión IGSS? Esta acción no se puede deshacer.')">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                            <i class="fas fa-check mr-2"></i>Finalizar
+                        </button>
+                    </form>
+                }
+                <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- Estado de la Suspensión -->
+        <div class="mb-6">
+            @if (Model.Estado == "activa")
+            {
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-injured text-red-600 text-2xl mr-3"></i>
+                        <div>
+                            <h4 class="text-red-900 font-medium">Suspensión IGSS Activa</h4>
+                            <p class="text-red-700 text-sm">El empleado se encuentra actualmente con incapacidad temporal.</p>
+                            @if (enCurso)
+                            {
+                                <p class="text-red-600 text-sm font-medium mt-1">
+                                    <i class="fas fa-calendar-check mr-1"></i>En curso - Día @diasTranscurridos de @diasTotales días
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-gray-600 text-2xl mr-3"></i>
+                        <div>
+                            <h4 class="text-gray-900 font-medium">Suspensión IGSS Finalizada</h4>
+                            <p class="text-gray-700 text-sm">Esta suspensión ha sido finalizada y el empleado ha regresado a sus labores.</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Información del Empleado -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-user mr-2"></i>Información del Empleado
+                </h4>
+                
+                <div class="flex items-center mb-4">
+                    <div class="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">
+                            @(Model.IdEmpleadoNavigation.NombreCompleto.Split(' ').FirstOrDefault()?.Substring(0, 1))@(Model.IdEmpleadoNavigation.NombreCompleto.Split(' ').Skip(1).FirstOrDefault()?.Substring(0, 1))
+                        </span>
+                    </div>
+                    <div class="ml-4">
+                        <h5 class="text-lg font-medium text-gray-900">@Model.IdEmpleadoNavigation.NombreCompleto</h5>
+                        <p class="text-sm text-gray-600">ID: @Model.IdEmpleadoNavigation.Id.ToString().PadLeft(8, '0')</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Departamento:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.Departamento?.Nombre</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Puesto:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.Puesto?.Nombre</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Salario Base:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.SalarioBase.ToString("C")</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Tipo Nómina:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.TipoNomina</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles de la Suspensión -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-clipboard-list mr-2"></i>Detalles de la Suspensión
+                </h4>
+
+                <div class="space-y-4">
+                    <!-- Tipo de Suspensión -->
+                    <div class="text-center mb-4">
+                        @if (Model.Tipo == "accidente_laboral")
+                        {
+                            <div class="inline-flex items-center px-4 py-2 rounded-full bg-orange-100 text-orange-800">
+                                <i class="fas fa-hard-hat text-2xl mr-3"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold">Accidente Laboral</div>
+                                    <div class="text-xs">100% subsidio desde día 1</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="inline-flex items-center px-4 py-2 rounded-full bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-thermometer-half text-2xl mr-3"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold">Enfermedad Común</div>
+                                    <div class="text-xs">66% subsidio desde día 4</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Fechas -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-600">Fecha de Inicio</span>
+                            <p class="text-lg font-semibold text-gray-900">@Model.FechaInicio.ToString("dd/MM/yyyy")</p>
+                            <p class="text-xs text-gray-500">@Model.FechaInicio.ToString("dddd")</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-600">Fecha de Fin</span>
+                            <p class="text-lg font-semibold text-gray-900">@Model.FechaFin.ToString("dd/MM/yyyy")</p>
+                            <p class="text-xs text-gray-500">@Model.FechaFin.ToString("dddd")</p>
+                        </div>
+                    </div>
+
+                    <!-- Días -->
+                    <div class="border-t pt-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Días Totales:</span>
+                                <p class="text-xl font-bold text-blue-600">@diasTotales día(s)</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Días Pagados IGSS:</span>
+                                <p class="text-xl font-bold text-green-600">@(Model.DiasPagadosIgss ?? 0) día(s)</p>
+                            </div>
+                        </div>
+                        @if (diasSinPago > 0)
+                        {
+                            <p class="text-xs text-red-500 mt-2">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                @diasSinPago días sin pago (período de carencia)
+                            </p>
+                        }
+                    </div>
+
+                    <!-- Subsidio -->
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-medium text-gray-600">Subsidio IGSS:</span>
+                            <span class="text-2xl font-bold text-green-600">@((Model.MontoSubsidio ?? 0).ToString("C"))</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Calculado sobre salario promedio últimos 6 meses (@porcentajeSubsidio%)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observaciones -->
+        @if (!string.IsNullOrEmpty(Model.Observaciones))
+        {
+            <div class="mt-6 bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-comment-alt mr-2"></i>Observaciones Médicas
+                </h4>
+                <div class="bg-white rounded-lg p-4 border">
+                    <p class="text-gray-900 leading-relaxed">@Model.Observaciones</p>
+                </div>
+            </div>
+        }
+
+        <!-- Información de Seguimiento -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">
+                <i class="fas fa-history mr-2"></i>Seguimiento del Caso
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Fecha de Registro</span>
+                    <p class="text-sm text-gray-900">@Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Última Modificación</span>
+                    <p class="text-sm text-gray-900">@Model.FechaModificacion?.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Estado Actual</span>
+                    <p class="text-sm font-semibold text-gray-900">@Model.Estado?.ToUpper()</p>
+                </div>
+            </div>
+
+            <!-- Progress Bar para casos activos -->
+            @if (Model.Estado == "activa" && diasTotales > 0)
+            {
+                var progreso = Math.Min(100, (diasTranscurridos * 100) / diasTotales);
+                <div class="mt-4">
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Progreso de la Incapacidad</span>
+                        <span>@progreso.ToString("F0")%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-red-600 h-2 rounded-full transition-all duration-300" style="width: @progreso%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Inicio: @Model.FechaInicio.ToString("dd/MM")</span>
+                        <span>Fin: @Model.FechaFin.ToString("dd/MM")</span>
+                    </div>
+                </div>
+            }
+
+            <!-- Alertas especiales -->
+            @if (Model.Estado == "activa")
+            {
+                <div class="mt-4 p-3 bg-red-100 rounded-lg">
+                    <p class="text-sm text-red-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Recordatorio:</strong> Mientras esta suspensión esté activa, el empleado NO debe aparecer en nómina. 
+                        El IGSS es responsable del pago del subsidio directamente al empleado.
+                    </p>
+                </div>
+                
+                @if (enCurso)
+                {
+                    <div class="mt-2 p-3 bg-yellow-100 rounded-lg">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            El empleado está actualmente en el día @diasTranscurridos de @diasTotales días de incapacidad.
+                            @if (Model.FechaFin.ToDateTime(TimeOnly.MinValue) <= DateTime.Now.Date.AddDays(3))
+                            {
+                                <span class="font-medium">La incapacidad termina pronto - preparar regreso al trabajo.</span>
+                            }
+                        </p>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-balance-scale mr-2"></i>Marco Legal Aplicable
+            </h4>
+            <div class="text-sm text-blue-800">
+                <p><strong>Base Legal:</strong> Ley Orgánica del IGSS (Decreto 295) y Acuerdo 1121</p>
+                @if (Model.Tipo == "accidente_laboral")
+                {
+                    <p><strong>Artículo aplicable:</strong> Art. 28 - Prestaciones por accidente de trabajo</p>
+                    <p>• Subsidio del 100% del salario promedio desde el primer día</p>
+                    <p>• Sin límite de tiempo mientras dure la incapacidad</p>
+                }
+                else
+                {
+                    <p><strong>Artículo aplicable:</strong> Art. 27 - Prestaciones por enfermedad común</p>
+                    <p>• Subsidio del 66% del salario promedio desde el cuarto día</p>
+                    <p>• Máximo 26 semanas por año de seguro</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
