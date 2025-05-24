@@ -1,0 +1,312 @@
+@{
+    ViewData["Title"] = "Nueva Solicitud de Permiso";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Nueva Solicitud de Permiso</h3>
+        <p class="text-sm text-gray-500 mt-1">Registra una nueva solicitud de permiso con o sin goce de sueldo</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Empleado -->
+            <div class="md:col-span-2">
+                <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado *</label>
+                <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados" 
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+            </div>
+
+            <!-- Información del Empleado -->
+            <div class="md:col-span-2" id="infoEmpleado" style="display: none;">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-user mr-2"></i>Información del Empleado
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+                        <div>
+                            <span class="font-medium">Departamento:</span>
+                            <span id="departamentoEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Puesto:</span>
+                            <span id="puestoEmpleado">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Salario Base:</span>
+                            <span id="salarioEmpleado">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tipo de Permiso -->
+            <div class="md:col-span-2">
+                <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Permiso *</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="relative flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="tipo" value="con_goce" id="conGoce" required 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">
+                                <i class="fas fa-hand-holding-usd text-green-600 mr-2"></i>Con Goce de Sueldo
+                            </div>
+                            <div class="text-sm text-gray-500">El empleado mantiene su salario durante el permiso</div>
+                        </div>
+                    </label>
+                    
+                    <label class="relative flex items-center p-4 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input type="radio" name="tipo" value="sin_goce" id="sinGoce" required 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">
+                                <i class="fas fa-hand-paper text-red-600 mr-2"></i>Sin Goce de Sueldo
+                            </div>
+                            <div class="text-sm text-gray-500">Se descontará del salario el tiempo del permiso</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div>
+                <label for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio *</label>
+                <input type="date" name="fechaInicio" id="fechaInicio" required 
+                       min="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div>
+                <label for="fechaFin" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin *</label>
+                <input type="date" name="fechaFin" id="fechaFin" required 
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Días del Permiso -->
+            <div>
+                <label for="dias" class="block text-sm font-medium text-gray-700 mb-2">Días de Permiso *</label>
+                <input type="number" name="dias" id="dias" required min="1" max="30"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Se calculará automáticamente al seleccionar fechas</p>
+            </div>
+
+            <!-- Descuento (solo para sin goce) -->
+            <div id="campoDescuento" style="display: none;">
+                <label for="descuento" class="block text-sm font-medium text-gray-700 mb-2">Descuento Estimado</label>
+                <input type="number" name="descuento" id="descuento" step="0.01" min="0"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Se calculará automáticamente según días y salario</p>
+            </div>
+
+            <!-- Motivo -->
+            <div class="md:col-span-2">
+                <label for="motivo" class="block text-sm font-medium text-gray-700 mb-2">Motivo del Permiso *</label>
+                <textarea name="motivo" id="motivo" rows="3" required 
+                          placeholder="Describe detalladamente el motivo del permiso (ej: Cita médica, asuntos personales, emergencia familiar...)"
+                          class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            </div>
+        </div>
+
+        <!-- Preview del Cálculo -->
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg" id="previewCalculo" style="display: none;">
+            <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                <i class="fas fa-calculator mr-2"></i>Vista Previa del Cálculo
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-yellow-800">
+                <div>
+                    <span class="font-medium">Período:</span>
+                    <span id="periodoPreview">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Días:</span>
+                    <span id="diasPreview">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Tipo:</span>
+                    <span id="tipoPreview">-</span>
+                </div>
+                <div>
+                    <span class="font-medium">Descuento:</span>
+                    <span id="descuentoPreview">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Tipos de Permisos Reconocidos por Ley
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-800">
+                <div>
+                    <p><strong>Con Goce de Sueldo:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>Matrimonio del empleado (5 días)</li>
+                        <li>Fallecimiento de cónyuge o familiar directo (3 días)</li>
+                        <li>Citaciones judiciales obligatorias</li>
+                        <li>Emergencias médicas certificadas</li>
+                    </ul>
+                </div>
+                <div>
+                    <p><strong>Sin Goce de Sueldo:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li>Asuntos personales voluntarios</li>
+                        <li>Viajes no relacionados con trabajo</li>
+                        <li>Citas médicas no urgentes</li>
+                        <li>Trámites personales</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-paper-plane mr-2"></i>Enviar Solicitud
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const empleadoSelect = document.getElementById('empleadoId');
+    const fechaInicioInput = document.getElementById('fechaInicio');
+    const fechaFinInput = document.getElementById('fechaFin');
+    const diasInput = document.getElementById('dias');
+    const conGoceRadio = document.getElementById('conGoce');
+    const sinGoceRadio = document.getElementById('sinGoce');
+    const campoDescuento = document.getElementById('campoDescuento');
+    const descuentoInput = document.getElementById('descuento');
+    const infoEmpleado = document.getElementById('infoEmpleado');
+    const previewCalculo = document.getElementById('previewCalculo');
+
+    let salarioEmpleado = 0;
+
+    // Mostrar/ocultar campo descuento según tipo
+    function toggleDescuento() {
+        if (sinGoceRadio.checked) {
+            campoDescuento.style.display = 'block';
+            calcularDescuento();
+        } else {
+            campoDescuento.style.display = 'none';
+            descuentoInput.value = '';
+        }
+        actualizarPreview();
+    }
+
+    // Calcular días automáticamente
+    function calcularDias() {
+        if (fechaInicioInput.value && fechaFinInput.value) {
+            const fechaInicio = new Date(fechaInicioInput.value);
+            const fechaFin = new Date(fechaFinInput.value);
+            
+            if (fechaFin >= fechaInicio) {
+                const diffTime = fechaFin - fechaInicio;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                
+                diasInput.value = diffDays;
+                calcularDescuento();
+                actualizarPreview();
+            }
+        }
+    }
+
+    // Calcular descuento para permisos sin goce
+    function calcularDescuento() {
+        if (sinGoceRadio.checked && diasInput.value && salarioEmpleado > 0) {
+            const dias = parseInt(diasInput.value);
+            const descuentoDiario = salarioEmpleado / 30; // Asumiendo mes de 30 días
+            const descuentoTotal = descuentoDiario * dias;
+            descuentoInput.value = descuentoTotal.toFixed(2);
+        }
+    }
+
+    // Actualizar preview
+    function actualizarPreview() {
+        if (fechaInicioInput.value && fechaFinInput.value && diasInput.value) {
+            document.getElementById('periodoPreview').textContent = 
+                `${fechaInicioInput.value} a ${fechaFinInput.value}`;
+            document.getElementById('diasPreview').textContent = diasInput.value;
+            document.getElementById('tipoPreview').textContent = 
+                conGoceRadio.checked ? 'Con Goce' : (sinGoceRadio.checked ? 'Sin Goce' : '-');
+            document.getElementById('descuentoPreview').textContent = 
+                sinGoceRadio.checked && descuentoInput.value ? 
+                `Q${parseFloat(descuentoInput.value).toFixed(2)}` : 'Q0.00';
+            
+            previewCalculo.style.display = 'block';
+        }
+    }
+
+    // Cargar información del empleado (simulado)
+    empleadoSelect.addEventListener('change', function() {
+        if (this.value) {
+            // En un caso real, harías una petición AJAX para obtener datos del empleado
+            // Por ahora simulamos datos básicos
+            salarioEmpleado = 5000; // Ejemplo
+            document.getElementById('departamentoEmpleado').textContent = 'Ventas';
+            document.getElementById('puestoEmpleado').textContent = 'Vendedor';
+            document.getElementById('salarioEmpleado').textContent = `Q${salarioEmpleado.toFixed(2)}`;
+            infoEmpleado.style.display = 'block';
+        } else {
+            infoEmpleado.style.display = 'none';
+            previewCalculo.style.display = 'none';
+        }
+    });
+
+    // Event listeners
+    conGoceRadio.addEventListener('change', toggleDescuento);
+    sinGoceRadio.addEventListener('change', toggleDescuento);
+    
+    fechaInicioInput.addEventListener('change', function() {
+        fechaFinInput.min = this.value;
+        calcularDias();
+    });
+    
+    fechaFinInput.addEventListener('change', function() {
+        if (fechaInicioInput.value && this.value < fechaInicioInput.value) {
+            alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+            this.value = '';
+            return;
+        }
+        calcularDias();
+    });
+
+    diasInput.addEventListener('input', function() {
+        calcularDescuento();
+        actualizarPreview();
+    });
+
+    // Validación del formulario
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (!conGoceRadio.checked && !sinGoceRadio.checked) {
+            e.preventDefault();
+            alert('Debe seleccionar el tipo de permiso');
+            return;
+        }
+
+        if (fechaInicioInput.value && fechaFinInput.value && fechaFinInput.value < fechaInicioInput.value) {
+            e.preventDefault();
+            alert('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+            return;
+        }
+    });
+});
+</script>

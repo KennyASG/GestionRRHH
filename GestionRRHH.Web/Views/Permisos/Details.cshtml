@@ -1,0 +1,277 @@
+@model GestionRRHH.Web.Models.Entities.Permiso
+
+@{
+    ViewData["Title"] = "Detalles de Permiso";
+    var diasTranscurridos = (DateTime.Now.Date - Model.FechaInicio.ToDateTime(TimeOnly.MinValue)).Days;
+    var enPeriodoPermiso = DateTime.Now.Date >= Model.FechaInicio.ToDateTime(TimeOnly.MinValue) && 
+                           DateTime.Now.Date <= Model.FechaFin.ToDateTime(TimeOnly.MinValue);
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Detalles de Permiso</h3>
+                <p class="text-sm text-gray-500 mt-1">Solicitud #@Model.Id.ToString().PadLeft(6, '0')</p>
+            </div>
+            <div class="flex space-x-3">
+                @if (Model.Estado == "solicitado")
+                {
+                    <form asp-action="Aprobar" asp-route-id="@Model.Id" method="post" class="inline" onsubmit="return confirm('¿Aprobar esta solicitud de permiso?')">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                            <i class="fas fa-check mr-2"></i>Aprobar
+                        </button>
+                    </form>
+                    <form asp-action="Rechazar" asp-route-id="@Model.Id" method="post" class="inline" onsubmit="return confirm('¿Rechazar esta solicitud de permiso?')">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                            <i class="fas fa-times mr-2"></i>Rechazar
+                        </button>
+                    </form>
+                }
+                <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- Estado de la Solicitud -->
+        <div class="mb-6">
+            @if (Model.Estado == "aprobado")
+            {
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-600 text-2xl mr-3"></i>
+                        <div>
+                            <h4 class="text-green-900 font-medium">Permiso Aprobado</h4>
+                            <p class="text-green-700 text-sm">Esta solicitud ha sido aprobada.</p>
+                            @if (enPeriodoPermiso)
+                            {
+                                <p class="text-green-600 text-sm font-medium mt-1">
+                                    <i class="fas fa-calendar-check mr-1"></i>El empleado está actualmente en permiso
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (Model.Estado == "solicitado")
+            {
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-hourglass-half text-yellow-600 text-2xl mr-3"></i>
+                        <div>
+                            <h4 class="text-yellow-900 font-medium">Pendiente de Aprobación</h4>
+                            <p class="text-yellow-700 text-sm">Esta solicitud está pendiente de revisión y aprobación.</p>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-times-circle text-red-600 text-2xl mr-3"></i>
+                        <div>
+                            <h4 class="text-red-900 font-medium">Solicitud Rechazada</h4>
+                            <p class="text-red-700 text-sm">Esta solicitud ha sido rechazada.</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Información del Empleado -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-user mr-2"></i>Información del Empleado
+                </h4>
+                
+                <div class="flex items-center mb-4">
+                    <div class="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">
+                            @(Model.IdEmpleadoNavigation.NombreCompleto.Split(' ').FirstOrDefault()?.Substring(0, 1))@(Model.IdEmpleadoNavigation.NombreCompleto.Split(' ').Skip(1).FirstOrDefault()?.Substring(0, 1))
+                        </span>
+                    </div>
+                    <div class="ml-4">
+                        <h5 class="text-lg font-medium text-gray-900">@Model.IdEmpleadoNavigation.NombreCompleto</h5>
+                        <p class="text-sm text-gray-600">ID: @Model.IdEmpleadoNavigation.Id.ToString().PadLeft(8, '0')</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Departamento:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.Departamento?.Nombre</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Puesto:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.Puesto?.Nombre</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Fecha Contratación:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.FechaContratacion.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Salario Base:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.SalarioBase.ToString("C")</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-600">Tipo Nómina:</span>
+                        <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.TipoNomina</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalles del Permiso -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                    <i class="fas fa-file-alt mr-2"></i>Detalles del Permiso
+                </h4>
+
+                <div class="space-y-4">
+                    <!-- Tipo de Permiso -->
+                    <div class="text-center mb-4">
+                        @if (Model.Tipo == "con_goce")
+                        {
+                            <div class="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-hand-holding-usd text-2xl mr-3"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold">Con Goce de Sueldo</div>
+                                    <div class="text-xs">Mantiene salario completo</div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="inline-flex items-center px-4 py-2 rounded-full bg-red-100 text-red-800">
+                                <i class="fas fa-hand-paper text-2xl mr-3"></i>
+                                <div class="text-left">
+                                    <div class="font-semibold">Sin Goce de Sueldo</div>
+                                    <div class="text-xs">Se descuenta del salario</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Fechas -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-600">Fecha de Inicio</span>
+                            <p class="text-lg font-semibold text-gray-900">@Model.FechaInicio.ToString("dd/MM/yyyy")</p>
+                            <p class="text-xs text-gray-500">@Model.FechaInicio.ToString("dddd")</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-600">Fecha de Fin</span>
+                            <p class="text-lg font-semibold text-gray-900">@Model.FechaFin.ToString("dd/MM/yyyy")</p>
+                            <p class="text-xs text-gray-500">@Model.FechaFin.ToString("dddd")</p>
+                        </div>
+                    </div>
+
+                    <!-- Días -->
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-600">Días de Permiso:</span>
+                            <span class="text-xl font-bold text-blue-600">@Model.Dias día(s)</span>
+                        </div>
+                    </div>
+
+                    <!-- Descuento (solo si es sin goce) -->
+                    @if (Model.Tipo == "sin_goce")
+                    {
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-medium text-gray-600">Descuento:</span>
+                                <span class="text-2xl font-bold text-red-600">@((Model.Descuento ?? 0).ToString("C"))</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Descuento proporcional por días sin goce</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="border-t pt-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-medium text-gray-600">Impacto Salarial:</span>
+                                <span class="text-2xl font-bold text-green-600">Sin descuento</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Mantiene salario completo durante el permiso</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Motivo del Permiso -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">
+                <i class="fas fa-comment-alt mr-2"></i>Motivo del Permiso
+            </h4>
+            <div class="bg-white rounded-lg p-4 border">
+                <p class="text-gray-900 leading-relaxed">@Model.Motivo</p>
+            </div>
+        </div>
+
+        <!-- Información de Seguimiento -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">
+                <i class="fas fa-history mr-2"></i>Seguimiento de la Solicitud
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Fecha de Solicitud</span>
+                    <p class="text-sm text-gray-900">@Model.FechaCreacion?.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Última Modificación</span>
+                    <p class="text-sm text-gray-900">@Model.FechaModificacion?.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Estado Actual</span>
+                    <p class="text-sm font-semibold text-gray-900">@Model.Estado?.ToUpper()</p>
+                </div>
+            </div>
+
+            <!-- Alertas especiales -->
+            @if (Model.Estado == "aprobado" && enPeriodoPermiso)
+            {
+                <div class="mt-4 p-3 bg-blue-100 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        El empleado está actualmente en permiso.
+                        Días transcurridos: @Math.Max(0, diasTranscurridos) de @Model.Dias día(s).
+                    </p>
+                </div>
+            }
+
+            @if (Model.Tipo == "sin_goce" && Model.Estado == "aprobado")
+            {
+                <div class="mt-4 p-3 bg-yellow-100 rounded-lg">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Recordatorio:</strong> Este permiso generará un descuento de @((Model.Descuento ?? 0).ToString("C")) en la próxima nómina.
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
