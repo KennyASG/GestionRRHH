@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using GestionRRHH.Web.Data;
+using GestionRRHH.Web.Services; // Agregar esta línea
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection"),
         ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))
     ));
+
+// Registrar el servicio de nómina
+builder.Services.AddScoped<INominaService, NominaService>();
 
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>

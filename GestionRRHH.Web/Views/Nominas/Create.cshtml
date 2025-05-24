@@ -1,0 +1,125 @@
+@{
+    ViewData["Title"] = "Nueva Nómina";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Crear Nueva Nómina</h3>
+        <p class="text-sm text-gray-500 mt-1">Define el período y tipo de nómina a generar</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Tipo de Nómina -->
+            <div class="md:col-span-2">
+                <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Nómina *</label>
+                <select name="tipo" id="tipo" required class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar tipo...</option>
+                    <option value="mensual">Mensual</option>
+                    <option value="quincenal">Quincenal</option>
+                    <option value="semanal">Semanal</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Solo se incluirán empleados con el tipo de nómina seleccionado</p>
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div>
+                <label for="fechaInicio" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Inicio *</label>
+                <input type="date" name="fechaInicio" id="fechaInicio" required class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div>
+                <label for="fechaFin" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Fin *</label>
+                <input type="date" name="fechaFin" id="fechaFin" required class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>Información Legal
+            </h4>
+            <div class="text-sm text-blue-800 space-y-1">
+                <p>• <strong>Bonificación Incentivo:</strong> Q250.00 mensuales (Decreto 37-2001)</p>
+                <p>• <strong>IGSS Empleado:</strong> 4.83% del salario gravable</p>
+                <p>• <strong>ISR:</strong> Según tabla vigente (5% hasta Q30,000 anuales)</p>
+                <p>• <strong>Horas Extra:</strong> 150% valor hora normal, 200% días de descanso</p>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-plus mr-2"></i>Crear Nómina
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Validación de fechas en el cliente
+    document.getElementById('fechaInicio').addEventListener('change', function() {
+        const fechaInicio = new Date(this.value);
+        const fechaFinInput = document.getElementById('fechaFin');
+
+        // Establecer fecha mínima para fecha fin
+        if (fechaFinInput.value && new Date(fechaFinInput.value) <= fechaInicio) {
+            fechaFinInput.value = '';
+        }
+
+        const nextDay = new Date(fechaInicio);
+        nextDay.setDate(nextDay.getDate() + 1);
+        fechaFinInput.min = nextDay.toISOString().split('T')[0];
+    });
+
+    // Sugerencias de período según tipo
+    document.getElementById('tipo').addEventListener('change', function() {
+        const tipo = this.value;
+        const today = new Date();
+        const fechaInicioInput = document.getElementById('fechaInicio');
+        const fechaFinInput = document.getElementById('fechaFin');
+
+        if (tipo === 'mensual') {
+            // Primer día del mes actual
+            const primerDia = new Date(today.getFullYear(), today.getMonth(), 1);
+            const ultimoDia = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+            fechaInicioInput.value = primerDia.toISOString().split('T')[0];
+            fechaFinInput.value = ultimoDia.toISOString().split('T')[0];
+        } else if (tipo === 'quincenal') {
+            // Primera o segunda quincena
+            const dia = today.getDate();
+            if (dia <= 15) {
+                fechaInicioInput.value = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                fechaFinInput.value = new Date(today.getFullYear(), today.getMonth(), 15).toISOString().split('T')[0];
+            } else {
+                fechaInicioInput.value = new Date(today.getFullYear(), today.getMonth(), 16).toISOString().split('T')[0];
+                fechaFinInput.value = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+            }
+        } else if (tipo === 'semanal') {
+            // Semana actual (lunes a domingo)
+            const lunes = new Date(today);
+            lunes.setDate(today.getDate() - today.getDay() + 1);
+            const domingo = new Date(lunes);
+            domingo.setDate(lunes.getDate() + 6);
+
+            fechaInicioInput.value = lunes.toISOString().split('T')[0];
+            fechaFinInput.value = domingo.toISOString().split('T')[0];
+        }
+    });
+</script>
