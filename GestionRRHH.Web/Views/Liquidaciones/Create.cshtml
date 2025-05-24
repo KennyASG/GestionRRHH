@@ -1,0 +1,340 @@
+@{
+    ViewData["Title"] = "Nueva Liquidación";
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Nueva Liquidación por Terminación de Contrato</h3>
+        <p class="text-sm text-gray-500 mt-1">Calcula automáticamente todos los conceptos según la legislación guatemalteca</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Create" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Empleado -->
+            <div class="md:col-span-2">
+                <label for="empleadoId" class="block text-sm font-medium text-gray-700 mb-2">Empleado a Liquidar *</label>
+                <select name="empleadoId" id="empleadoId" required asp-items="ViewBag.Empleados"
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar empleado...</option>
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Solo se muestran empleados activos</p>
+            </div>
+
+            <!-- Información del Empleado -->
+            <div class="md:col-span-2" id="infoEmpleado" style="display: none;">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">
+                        <i class="fas fa-user mr-2"></i>Información del Empleado
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-blue-800">
+                        <div>
+                            <span class="font-medium">Fecha Contratación:</span>
+                            <span id="fechaContratacion">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Antigüedad:</span>
+                            <span id="antiguedad">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Salario Base:</span>
+                            <span id="salarioBase">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Departamento:</span>
+                            <span id="departamento">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fecha de Baja -->
+            <div>
+                <label for="fechaBaja" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Baja *</label>
+                <input type="date" name="fechaBaja" id="fechaBaja" required
+                       value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       max="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <p class="text-xs text-gray-500 mt-1">Fecha efectiva de terminación del contrato</p>
+            </div>
+
+            <!-- Motivo de Baja -->
+            <div>
+                <label for="motivoBaja" class="block text-sm font-medium text-gray-700 mb-2">Motivo de Baja</label>
+                <select name="motivoBaja" id="motivoBaja"
+                        class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar motivo...</option>
+                    <option value="renuncia_voluntaria">Renuncia Voluntaria</option>
+                    <option value="despido_justificado">Despido con Justa Causa</option>
+                    <option value="despido_injustificado">Despido sin Justa Causa</option>
+                    <option value="fin_contrato">Finalización de Contrato</option>
+                    <option value="mutuo_acuerdo">Mutuo Acuerdo</option>
+                    <option value="fallecimiento">Fallecimiento</option>
+                    <option value="incapacidad_permanente">Incapacidad Permanente</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Preview del Cálculo -->
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg" id="previewCalculo" style="display: none;">
+            <h4 class="text-sm font-medium text-yellow-900 mb-2">
+                <i class="fas fa-calculator mr-2"></i>Vista Previa del Cálculo de Liquidación
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h5 class="text-sm font-medium text-yellow-800 mb-3">Conceptos a Pagar:</h5>
+                    <div class="space-y-2 text-sm text-yellow-800">
+                        <div class="flex justify-between">
+                            <span>Vacaciones Pendientes:</span>
+                            <span id="vacacionesPendientes" class="font-semibold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Pago de Vacaciones:</span>
+                            <span id="pagoVacaciones" class="font-semibold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Indemnización:</span>
+                            <span id="indemnizacion" class="font-semibold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Aguinaldo Proporcional:</span>
+                            <span id="aguinaldoProporcional" class="font-semibold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Bono 14 Proporcional:</span>
+                            <span id="bono14Proporcional" class="font-semibold">-</span>
+                        </div>
+                        <hr class="border-yellow-300">
+                        <div class="flex justify-between text-lg">
+                            <span class="font-bold">TOTAL LIQUIDACIÓN:</span>
+                            <span id="totalLiquidacion" class="font-bold text-green-700">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-sm font-medium text-yellow-800 mb-3">Detalles del Cálculo:</h5>
+                    <div class="space-y-2 text-xs text-yellow-700">
+                        <div>
+                            <span class="font-medium">Antigüedad:</span>
+                            <span id="antiguedadDetalle">-</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Días de vacaciones por año:</span>
+                            <span>15 días hábiles (Art. 130 Código de Trabajo)</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Indemnización:</span>
+                            <span>1 mes de salario por año trabajado</span>
+                        </div>
+                        <div>
+                            <span class="font-medium">Prestaciones:</span>
+                            <span>Proporcional a meses trabajados en el año</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información Legal -->
+        <div class="mt-6 p-4 bg-green-50 rounded-lg">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-balance-scale mr-2"></i>Marco Legal - Liquidación Laboral en Guatemala
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-green-800">
+                <div>
+                    <p><strong>Código de Trabajo (Decreto 1441):</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li><strong>Art. 82:</strong> Indemnización por despido injustificado</li>
+                        <li><strong>Art. 130:</strong> Vacaciones - 15 días hábiles por año</li>
+                        <li><strong>Art. 133:</strong> Pago incluye salario + bonificaciones promedio</li>
+                    </ul>
+                </div>
+                <div>
+                    <p><strong>Prestaciones Laborales:</strong></p>
+                    <ul class="list-disc list-inside mt-1 space-y-1">
+                        <li><strong>Aguinaldo:</strong> Decreto 76-78 (proporcional)</li>
+                        <li><strong>Bono 14:</strong> Decreto 42-92 (proporcional)</li>
+                        <li><strong>Indemnización:</strong> 1 mes por año trabajado</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advertencia -->
+        <div class="mt-6 p-4 bg-red-50 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-exclamation-triangle text-red-400 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-red-900">Importante</h4>
+                    <div class="text-sm text-red-800 mt-1">
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Esta acción <strong>inactivará automáticamente</strong> al empleado</li>
+                            <li>La liquidación se calculará según la legislación guatemalteca vigente</li>
+                            <li>Una vez creada, solo se podrá marcar como "pagada"</li>
+                            <li>Asegúrate de que toda la información sea correcta antes de proceder</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" id="btnSubmit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-handshake mr-2"></i>Crear Liquidación
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const empleadoSelect = document.getElementById('empleadoId');
+        const fechaBajaInput = document.getElementById('fechaBaja');
+        const infoEmpleado = document.getElementById('infoEmpleado');
+        const previewCalculo = document.getElementById('previewCalculo');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        let empleadoData = null;
+
+        // Datos simulados de empleados (en realidad vendría de una API)
+        const empleadosData = {
+            // Se llenaría dinámicamente con AJAX
+        };
+
+        empleadoSelect.addEventListener('change', function() {
+            const empleadoId = this.value;
+            if (empleadoId) {
+                // En un caso real, harías una petición AJAX para obtener datos del empleado
+                // Por ahora simulamos datos básicos
+                empleadoData = {
+                    fechaContratacion: '2020-01-15',
+                    salarioBase: 8000,
+                    departamento: 'Administración'
+                };
+
+                mostrarInfoEmpleado(empleadoData);
+                calcularLiquidacion();
+            } else {
+                infoEmpleado.style.display = 'none';
+                previewCalculo.style.display = 'none';
+            }
+        });
+
+        fechaBajaInput.addEventListener('change', function() {
+            if (empleadoData) {
+                calcularLiquidacion();
+            }
+        });
+
+        function mostrarInfoEmpleado(data) {
+            const fechaContratacion = new Date(data.fechaContratacion);
+            const hoy = new Date();
+            const antiguedad = hoy.getFullYear() - fechaContratacion.getFullYear();
+
+            document.getElementById('fechaContratacion').textContent = fechaContratacion.toLocaleDateString('es-GT');
+            document.getElementById('antiguedad').textContent = `${antiguedad} año(s)`;
+            document.getElementById('salarioBase').textContent = data.salarioBase.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('departamento').textContent = data.departamento;
+
+            infoEmpleado.style.display = 'block';
+        }
+
+        function calcularLiquidacion() {
+            if (!empleadoData || !fechaBajaInput.value) return;
+
+            const fechaContratacion = new Date(empleadoData.fechaContratacion);
+            const fechaBaja = new Date(fechaBajaInput.value);
+
+            // Calcular antigüedad
+            let antiguedad = fechaBaja.getFullYear() - fechaContratacion.getFullYear();
+            if (fechaBaja.getMonth() < fechaContratacion.getMonth() ||
+                (fechaBaja.getMonth() === fechaContratacion.getMonth() && fechaBaja.getDate() < fechaContratacion.getDate())) {
+                antiguedad--;
+            }
+
+            // Calcular conceptos
+            const salarioBase = empleadoData.salarioBase;
+
+            // Vacaciones pendientes (simulado - 15 días por año menos las ya tomadas)
+            const vacacionesTotales = antiguedad * 15;
+            const vacacionesTomadas = 0; // Se obtendría de la base de datos
+            const vacacionesPendientes = Math.max(0, vacacionesTotales - vacacionesTomadas);
+            const pagoVacaciones = (salarioBase / 30) * vacacionesPendientes;
+
+            // Indemnización (1 mes por año)
+            const indemnizacion = antiguedad * salarioBase;
+
+            // Prestaciones proporcionales al año
+            const mesesTrabajadosEnAño = fechaBaja.getMonth() + 1;
+            const aguinaldoProporcional = (mesesTrabajadosEnAño / 12) * salarioBase;
+            const bono14Proporcional = (mesesTrabajadosEnAño / 12) * salarioBase;
+
+            // Total
+            const totalLiquidacion = pagoVacaciones + indemnizacion + aguinaldoProporcional + bono14Proporcional;
+
+            // Mostrar resultados
+            document.getElementById('vacacionesPendientes').textContent = `${vacacionesPendientes} días`;
+            document.getElementById('pagoVacaciones').textContent = pagoVacaciones.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('indemnizacion').textContent = indemnizacion.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('aguinaldoProporcional').textContent = aguinaldoProporcional.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('bono14Proporcional').textContent = bono14Proporcional.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('totalLiquidacion').textContent = totalLiquidacion.toLocaleString('es-GT', {
+                style: 'currency',
+                currency: 'GTQ'
+            });
+            document.getElementById('antiguedadDetalle').textContent = `${antiguedad} año(s) trabajado(s)`;
+
+            previewCalculo.style.display = 'block';
+        }
+
+        // Validación final
+        document.querySelector('form').addEventListener('submit', function(e) {
+            if (!empleadoSelect.value) {
+                e.preventDefault();
+                alert('Debe seleccionar un empleado');
+                return;
+            }
+
+            if (!fechaBajaInput.value) {
+                e.preventDefault();
+                alert('Debe especificar la fecha de baja');
+                return;
+            }
+
+            const confirmacion = confirm('¿Está seguro de crear esta liquidación?\n\nEsta acción:\n• Inactivará al empleado\n• Calculará la liquidación según ley guatemalteca\n• No se puede deshacer');
+            if (!confirmacion) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>

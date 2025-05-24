@@ -1,18 +1,259 @@
-@model TModel
+@model GestionRRHH.Web.Models.Entities.SuspensionesIgss
 
 @{
-    Layout = null;
+    ViewData["Title"] = "Editar Suspensión IGSS";
+    var diasTotales = (Model.FechaFin.ToDateTime(TimeOnly.MinValue) - Model.FechaInicio.ToDateTime(TimeOnly.MinValue)).Days + 1;
+    var porcentajeSubsidio = Model.Tipo == "accidente_laboral" ? 100 : 66;
+    var diasSinPago = Model.Tipo == "enfermedad_comun" ? 3 : 0;
 }
 
-<!DOCTYPE html>
+@if (TempData["Error"] != null)
+{
+    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        @TempData["Error"]
+    </div>
+}
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex justify-between items-start">
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Editar Suspensión IGSS</h3>
+                <p class="text-sm text-gray-500 mt-1">Actualiza la información de subsidio y días pagados por IGSS</p>
+            </div>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>Volver a Detalles
+            </a>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- Información del Empleado (Solo lectura) -->
+        <div class="mb-6 bg-gray-50 rounded-lg p-4">
+            <h4 class="text-lg font-medium text-gray-900 mb-4">
+                <i class="fas fa-user mr-2"></i>Información de la Suspensión
+            </h4>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Empleado:</span>
+                            <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.NombreCompleto</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Departamento:</span>
+                            <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.Departamento?.Nombre</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Salario Base:</span>
+                            <span class="text-sm text-gray-900">@Model.IdEmpleadoNavigation.SalarioBase.ToString("C")</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Período:</span>
+                            <span class="text-sm text-gray-900">@Model.FechaInicio.ToString("dd/MM/yyyy") - @Model.FechaFin.ToString("dd/MM/yyyy")</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Días Totales:</span>
+                            <span class="text-sm font-bold text-blue-600">@diasTotales días</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm font-medium text-gray-600">Tipo:</span>
+                            @if (Model.Tipo == "accidente_laboral")
+                            {
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                    <i class="fas fa-hard-hat mr-1"></i>Accidente Laboral
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-thermometer-half mr-1"></i>Enfermedad Común
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de Edición -->
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Días Pagados por IGSS -->
+                <div>
+                    <label for="diasPagadosIGSS" class="block text-sm font-medium text-gray-700 mb-2">
+                        Días Pagados por IGSS *
+                    </label>
+                    <input type="number" name="diasPagadosIGSS" id="diasPagadosIGSS" required 
+                           min="0" max="@diasTotales" value="@(Model.DiasPagadosIgss ?? 0)"
+                           class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">
+                        Máximo: @diasTotales días
+                        @if (diasSinPago > 0)
+                        {
+                            <span class="text-red-500">(Los primeros @diasSinPago días no se pagan por ley)</span>
+                        }
+                    </p>
+                </div>
+
+                <!-- Monto del Subsidio -->
+                <div>
+                    <label for="montoSubsidio" class="block text-sm font-medium text-gray-700 mb-2">
+                        Monto del Subsidio (Q) *
+                    </label>
+                    <input type="number" name="montoSubsidio" id="montoSubsidio" required 
+                           min="0" step="0.01" value="@(Model.MontoSubsidio ?? 0)"
+                           class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <p class="text-xs text-gray-500 mt-1">
+                        Subsidio calculado: @porcentajeSubsidio% del salario promedio
+                    </p>
+                </div>
+
+                <!-- Observaciones -->
+                <div class="md:col-span-2">
+                    <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-2">
+                        Observaciones
+                    </label>
+                    <textarea name="observaciones" id="observaciones" rows="4" 
+                              placeholder="Actualizaciones, notas del médico, cambios en el diagnóstico..."
+                              class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">@Model.Observaciones</textarea>
+                </div>
+            </div>
+
+            <!-- Información de Cálculo Automático -->
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg" id="calculoPreview">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">
+                    <i class="fas fa-calculator mr-2"></i>Información del Cálculo
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-blue-800">
+                    <div>
+                        <span class="font-medium">Salario Diario Promedio:</span>
+                        <span id="salarioDiario">@((Model.IdEmpleadoNavigation.SalarioBase / 30).ToString("C"))</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Porcentaje IGSS:</span>
+                        <span>@porcentajeSubsidio%</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Subsidio por Día:</span>
+                        <span id="subsidioDiario">@(((Model.IdEmpleadoNavigation.SalarioBase / 30) * (porcentajeSubsidio / 100.0m)).ToString("C"))</span>
+                    </div>
+                    <div>
+                        <span class="font-medium">Total Calculado:</span>
+                        <span id="totalCalculado">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Marco Legal -->
+            <div class="mt-6 p-4 bg-green-50 rounded-lg">
+                <h4 class="text-sm font-medium text-green-900 mb-2">
+                    <i class="fas fa-balance-scale mr-2"></i>Marco Legal Aplicable
+                </h4>
+                <div class="text-sm text-green-800">
+                    @if (Model.Tipo == "accidente_laboral")
+                    {
+                        <p><strong>Accidente Laboral (Art. 28 Acuerdo 1121):</strong></p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>100% del salario promedio de últimos 6 meses</li>
+                            <li>Se paga desde el primer día de incapacidad</li>
+                            <li>Sin límite de tiempo mientras dure la incapacidad</li>
+                        </ul>
+                    }
+                    else
+                    {
+                        <p><strong>Enfermedad Común (Art. 27 Acuerdo 1121):</strong></p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>66% del salario promedio de últimos 6 meses</li>
+                            <li>Se paga desde el cuarto día de incapacidad</li>
+                            <li>Máximo 26 semanas por año de seguro</li>
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+                <a asp-action="Details" asp-route-id="@Model.Id" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                    Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                    <i class="fas fa-save mr-2"></i>Actualizar Suspensión
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
-</body>
-</html>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const diasInput = document.getElementById('diasPagadosIGSS');
+    const montoInput = document.getElementById('montoSubsidio');
+    const totalCalculadoSpan = document.getElementById('totalCalculado');
+    
+    const salarioBase = @Model.IdEmpleadoNavigation.SalarioBase;
+    const porcentaje = @porcentajeSubsidio;
+    const salarioDiario = salarioBase / 30;
+    const subsidioDiario = salarioDiario * (porcentaje / 100);
+    
+    function calcularTotal() {
+        const diasPagados = parseInt(diasInput.value) || 0;
+        const total = subsidioDiario * diasPagados;
+        totalCalculadoSpan.textContent = total.toLocaleString('es-GT', {
+            style: 'currency',
+            currency: 'GTQ'
+        });
+        
+        // Sugerir el monto calculado si está vacío
+        if (!montoInput.value || montoInput.value == '0') {
+            montoInput.value = total.toFixed(2);
+        }
+    }
+    
+    // Calcular cuando cambian los días
+    diasInput.addEventListener('input', calcularTotal);
+    
+    // Validaciones
+    diasInput.addEventListener('input', function() {
+        const dias = parseInt(this.value) || 0;
+        const maxDias = @diasTotales;
+        
+        if (dias > maxDias) {
+            alert(`No se pueden pagar más de ${maxDias} días para este período.`);
+            this.value = maxDias;
+        }
+        
+        @if (diasSinPago > 0)
+        {
+            <text>
+            if (dias > (maxDias - @diasSinPago)) {
+                const mensaje = `Recuerda que los primeros @diasSinPago días no se pagan por ley. Días pagables máximo: ${maxDias - @diasSinPago}`;
+                if (dias > (maxDias - @diasSinPago)) {
+                    alert(mensaje);
+                }
+            }
+            </text>
+        }
+    });
+    
+    montoInput.addEventListener('input', function() {
+        const monto = parseFloat(this.value) || 0;
+        if (monto < 0) {
+            alert('El monto del subsidio no puede ser negativo.');
+            this.value = 0;
+        }
+    });
+    
+    // Calcular inicial
+    calcularTotal();
+});
+</script>
