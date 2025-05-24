@@ -1,4 +1,10 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+@if (User.IsInRole("empleado"))
+{
+    <li><a href="/MiNomina">Mi Nómina</a></li>
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
@@ -95,6 +101,7 @@
                     <div>
                         <h1 class="text-lg font-semibold">@ViewData["Title"]</h1>
                         <p class="text-xs text-gray-400">Sistema de Gestión RRHH</p>
+                        <p>Rol actual: @User.FindFirst(ClaimTypes.Role)?.Value</p>
                     </div>
                 </div>
 

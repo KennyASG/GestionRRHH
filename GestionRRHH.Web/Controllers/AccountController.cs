@@ -31,14 +31,19 @@ public class AccountController : Controller
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, usuario.NombreUsuario),
-                new Claim(ClaimTypes.Role, usuario.Rol)
+                new Claim(ClaimTypes.Role, usuario.Rol),
+                new Claim("EmpleadoID", usuario.IdEmpleado.ToString())
             };
 
+
             var identity = new ClaimsIdentity(claims, "Cookies");
-            await HttpContext.SignInAsync("Cookies", new ClaimsPrincipal(identity));
+            var principal = new ClaimsPrincipal(identity);
+
+            await HttpContext.SignInAsync("Cookies", principal);
 
             return RedirectToAction("Index", "Home");
         }
+
 
         ViewBag.Error = "Usuario o contraseña incorrectos";
         return View();

@@ -18,59 +18,91 @@ public class LiquidacionesController : Controller
     }
 
     // GET: Liquidaciones
-    public async Task<IActionResult> Index(DateOnly? fechaInicio, DateOnly? fechaFin, int? empleadoId, string? estado)
+    // REEMPLAZA el método Index en LiquidacionesController.cs
+
+public async Task<IActionResult> Index(DateOnly? fechaInicio, DateOnly? fechaFin, int? empleadoId, string? estado)
+{
+    try
     {
-        try
+        // Si no se especifican fechas, usar el año actual
+        if (!fechaInicio.HasValue || !fechaFin.HasValue)
         {
-            // Si no se especifican fechas, usar el año actual
-            if (!fechaInicio.HasValue || !fechaFin.HasValue)
-            {
-                var hoy = DateOnly.FromDateTime(DateTime.Now);
-                fechaInicio = new DateOnly(hoy.Year, 1, 1);
-                fechaFin = new DateOnly(hoy.Year, 12, 31);
-            }
+            var hoy = DateOnly.FromDateTime(DateTime.Now);
+            fechaInicio = new DateOnly(hoy.Year, 1, 1);
+            fechaFin = new DateOnly(hoy.Year, 12, 31);
+        }
 
-            var query = _context.Liquidaciones
-                .Include(l => l.IdEmpleadoNavigation)
-                .ThenInclude(e => e.Departamento)
-                .Include(l => l.IdEmpleadoNavigation)
-                .ThenInclude(e => e.Puesto)
-                .AsQueryable();
+        // SOLUCIÓN: Construir la consulta paso a paso para evitar el error de traducción
+        var query = _context.Liquidaciones
+            .Include(l => l.IdEmpleadoNavigation)
+            .ThenInclude(e => e.Departamento)
+            .Include(l => l.IdEmpleadoNavigation)
+            .ThenInclude(e => e.Puesto)
+            .AsQueryable();
 
-            if (fechaInicio.HasValue)
-                query = query.Where(l => l.FechaBaja >= fechaInicio.Value);
+        // Aplicar filtros de fecha
+        if (fechaInicio.HasValue)
+            query = query.Where(l => l.FechaBaja >= fechaInicio.Value);
 
-            if (fechaFin.HasValue)
-                query = query.Where(l => l.FechaBaja <= fechaFin.Value);
+        if (fechaFin.HasValue)
+            query = query.Where(l => l.FechaBaja <= fechaFin.Value);
 
-            if (empleadoId.HasValue)
-                query = query.Where(l => l.IdEmpleado == empleadoId.Value);
+        // SOLUCIÓN: Aplicar filtro de empleado de manera más simple
+        if (empleadoId.HasValue && empleadoId.Value > 0)
+            query = query.Where(l => l.IdEmpleado == empleadoId.Value);
 
-            if (!string.IsNullOrEmpty(estado))
-                query = query.Where(l => l.Estado == estado);
+        // Aplicar filtro de estado
+        if (!string.IsNullOrEmpty(estado))
+            query = query.Where(l => l.Estado == estado);
 
-            var liquidaciones = await query.OrderByDescending(l => l.FechaCreacion).ToListAsync();
+        // SOLUCIÓN: Ejecutar la consulta principal primero
+        var liquidaciones = await query
+            .OrderByDescending(l => l.FechaCreacion)
+            .ToListAsync();
 
-            // Cargar empleados para filtros
-            var empleados = await _context.Empleados
-                .Where(e => e.Estado == "activo" || liquidaciones.Any(l => l.IdEmpleado == e.Id))
+        // Cargar empleados para filtros - CONSULTA SEPARADA para evitar conflictos
+        var empleadosParaFiltro = await _context.Empleados
+            .Where(e => e.Estado == "activo" || 
+                       _context.Liquidaciones.Any(l => l.IdEmpleado == e.Id))
+            .OrderBy(e => e.NombreCompleto)
+            .ToListAsync();
+
+        // Si hay error en la consulta de empleados, usar consulta más simple
+        if (empleadosParaFiltro == null || !empleadosParaFiltro.Any())
+        {
+            empleadosParaFiltro = await _context.Empleados
+                .Where(e => e.Estado == "activo")
                 .OrderBy(e => e.NombreCompleto)
                 .ToListAsync();
-
-            ViewBag.FechaInicio = fechaInicio;
-            ViewBag.FechaFin = fechaFin;
-            ViewBag.EmpleadoId = empleadoId;
-            ViewBag.Estado = estado;
-            ViewBag.Empleados = new SelectList(empleados, "Id", "NombreCompleto", empleadoId);
-
-            return View(liquidaciones);
         }
-        catch (Exception ex)
-        {
-            TempData["Error"] = $"Error al cargar liquidaciones: {ex.Message}";
-            return View(new List<Liquidacione>());
-        }
+
+        ViewBag.FechaInicio = fechaInicio;
+        ViewBag.FechaFin = fechaFin;
+        ViewBag.EmpleadoId = empleadoId;
+        ViewBag.Estado = estado;
+        ViewBag.Empleados = new SelectList(empleadosParaFiltro, "Id", "NombreCompleto", empleadoId);
+
+        return View(liquidaciones);
     }
+    catch (Exception ex)
+    {
+        TempData["Error"] = $"Error al cargar liquidaciones: {ex.Message}";
+        
+        // En caso de error, devolver vista vacía con empleados básicos
+        var empleadosBasicos = await _context.Empleados
+            .Where(e => e.Estado == "activo")
+            .Select(e => new { e.Id, e.NombreCompleto })
+            .ToListAsync();
+            
+        ViewBag.FechaInicio = fechaInicio;
+        ViewBag.FechaFin = fechaFin;
+        ViewBag.EmpleadoId = empleadoId;
+        ViewBag.Estado = estado;
+        ViewBag.Empleados = new SelectList(empleadosBasicos, "Id", "NombreCompleto", empleadoId);
+        
+        return View(new List<Liquidacione>());
+    }
+}
 
     // GET: Liquidaciones/Details/5
     public async Task<IActionResult> Details(int id)
