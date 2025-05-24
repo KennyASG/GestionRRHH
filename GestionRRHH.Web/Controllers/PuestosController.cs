@@ -18,7 +18,9 @@ public class PuestosController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var puestos = await _context.Puestos.ToListAsync();
+        var puestos = await _context.Puestos
+            .Include(p => p.Empleados)
+            .ToListAsync();
         return View(puestos);
     }
     
@@ -71,12 +73,24 @@ public class PuestosController : Controller
     [HttpPost]
     public async Task<IActionResult> Delete(int id)
     {
-        var puesto = await _context.Puestos.FindAsync(id);
+        var puesto = await _context.Puestos
+            .Include(p => p.Empleados)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    
         if (puesto != null)
         {
+            // Verificar si tiene empleados asignados
+            if (puesto.Empleados.Any())
+            {
+                TempData["Error"] = $"No se puede eliminar el puesto '{puesto.Nombre}' porque tiene {puesto.Empleados.Count} empleados asignados.";
+                return RedirectToAction(nameof(Index));
+            }
+        
             _context.Puestos.Remove(puesto);
             await _context.SaveChangesAsync();
+            TempData["Success"] = "Puesto eliminado exitosamente.";
         }
+    
         return RedirectToAction(nameof(Index));
     }
 }
