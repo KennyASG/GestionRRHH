@@ -1,0 +1,160 @@
+@model GestionRRHH.Web.Models.Entities.Empleado
+
+@{
+    ViewData["Title"] = "Editar Empleado";
+}
+
+<div class="bg-white rounded-lg shadow">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Editar Empleado</h3>
+        <p class="text-sm text-gray-500 mt-1">Modifica la información personal y laboral del empleado</p>
+    </div>
+
+    <!-- Form -->
+    <form asp-action="Edit" class="p-6">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="FechaCreacion" />
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- Información Personal -->
+            <div class="md:col-span-2">
+                <h4 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Información Personal</h4>
+            </div>
+
+            <!-- Nombre Completo -->
+            <div>
+                <label asp-for="NombreCompleto" class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
+                <input asp-for="NombreCompleto" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="NombreCompleto" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- DPI -->
+            <div>
+                <label asp-for="Dpi" class="block text-sm font-medium text-gray-700 mb-2">DPI *</label>
+                <input asp-for="Dpi" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="Dpi" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Fecha de Nacimiento -->
+            <div>
+                <label asp-for="FechaNacimiento" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento *</label>
+                <input asp-for="FechaNacimiento" type="date" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="FechaNacimiento" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Teléfono -->
+            <div>
+                <label asp-for="Telefono" class="block text-sm font-medium text-gray-700 mb-2">Teléfono *</label>
+                <input asp-for="Telefono" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="Telefono" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
+                <input asp-for="Email" type="email" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="Email" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Dirección -->
+            <div>
+                <label asp-for="Direccion" class="block text-sm font-medium text-gray-700 mb-2">Dirección *</label>
+                <textarea asp-for="Direccion" rows="2" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                <span asp-validation-for="Direccion" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Información Laboral -->
+            <div class="md:col-span-2 mt-6">
+                <h4 class="text-lg font-medium text-gray-900 mb-4 border-b pb-2">Información Laboral</h4>
+            </div>
+
+            <!-- Fecha de Contratación -->
+            <div>
+                <label asp-for="FechaContratacion" class="block text-sm font-medium text-gray-700 mb-2">Fecha de Contratación *</label>
+                <input asp-for="FechaContratacion" type="date" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="FechaContratacion" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Estado -->
+            <div>
+                <label asp-for="Estado" class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+                <select asp-for="Estado" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                </select>
+                <span asp-validation-for="Estado" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Departamento -->
+            <div>
+                <label asp-for="DepartamentoId" class="block text-sm font-medium text-gray-700 mb-2">Departamento *</label>
+                <select asp-for="DepartamentoId" asp-items="ViewBag.Departamentos" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar departamento...</option>
+                </select>
+                <span asp-validation-for="DepartamentoId" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Puesto -->
+            <div>
+                <label asp-for="PuestoId" class="block text-sm font-medium text-gray-700 mb-2">Puesto *</label>
+                <select asp-for="PuestoId" asp-items="ViewBag.Puestos" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar puesto...</option>
+                </select>
+                <span asp-validation-for="PuestoId" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Salario Base -->
+            <div>
+                <label asp-for="SalarioBase" class="block text-sm font-medium text-gray-700 mb-2">Salario Base *</label>
+                <input asp-for="SalarioBase" type="number" step="0.01" min="0" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <span asp-validation-for="SalarioBase" class="text-red-500 text-sm"></span>
+                <p class="text-xs text-gray-500 mt-1">El salario debe estar dentro del rango definido para el puesto</p>
+            </div>
+
+            <!-- Tipo de Nómina -->
+            <div>
+                <label asp-for="TipoNomina" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Nómina *</label>
+                <select asp-for="TipoNomina" class="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleccionar tipo...</option>
+                    <option value="mensual">Mensual</option>
+                    <option value="quincenal">Quincenal</option>
+                    <option value="semanal">Semanal</option>
+                </select>
+                <span asp-validation-for="TipoNomina" class="text-red-500 text-sm"></span>
+            </div>
+
+            <!-- Información de Auditoría -->
+            <div class="md:col-span-2 mt-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h5 class="text-sm font-medium text-gray-700 mb-2">Información del Sistema</h5>
+                    <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                        <div>
+                            <span class="font-medium">Fecha de Creación:</span>
+                            @Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                        <div>
+                            <span class="font-medium">Última Modificación:</span>
+                            @Model.FechaModificacion.ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+            <a asp-action="Index" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                Cancelar
+            </a>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition duration-200">
+                <i class="fas fa-save mr-2"></i>Actualizar Empleado
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
